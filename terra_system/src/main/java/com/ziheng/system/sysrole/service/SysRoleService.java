@@ -7,6 +7,7 @@ import com.ziheng.system.sysrole.domain.dto.SysRoleAddDTO;
 import com.ziheng.system.sysrole.domain.dto.SysRoleQuery;
 import com.ziheng.system.sysrole.domain.vo.SysRoleListVO;
 import com.ziheng.system.sysrole.domain.vo.SysRoleOptionVO;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 
@@ -50,5 +51,12 @@ public interface SysRoleService extends IService<SysRole> {
      * @param roleIds 角色ID集合
      */
     void deleteRoles(List<Long> roleIds);
+
+    /**
+     * 导出角色列表（Excel）
+     * @param query 查询条件
+     * @param response 响应输出流
+     */
+    void export(SysRoleQuery query, HttpServletResponse response);
 
 }

@@ -1,31 +1,46 @@
 package com.ziheng.system.sysuser.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ziheng.common.core.domain.PageResult;
+import com.ziheng.common.core.enums.DeleteFlagEnum;
 import com.ziheng.common.exception.BusinessException;
+import com.ziheng.common.file.FileService;
+import com.ziheng.common.file.FileType;
 import com.ziheng.common.util.PasswordUtils;
+import com.ziheng.common.util.excel.ExcelExportUtils;
+import com.ziheng.system.security.util.LoginUserUtils;
 import com.ziheng.system.sysdept.domain.SysDept;
 import com.ziheng.system.sysdept.service.SysDeptService;
+import com.ziheng.system.sysloginlog.domain.SysLoginLog;
+import com.ziheng.system.sysloginlog.service.SysLoginLogService;
 import com.ziheng.system.sysuser.domain.SysUser;
 import com.ziheng.system.sysuser.domain.dto.SysUserAddDTO;
 import com.ziheng.system.sysuser.domain.dto.SysUserQuery;
 import com.ziheng.system.sysuser.domain.dto.SysUserResetPasswordDTO;
+import com.ziheng.system.sysuser.domain.dto.SysUserUpdateProfileDTO;
+import com.ziheng.system.sysuser.domain.dto.SysUserChangePasswordDTO;
 import com.ziheng.system.sysuser.domain.vo.SysUserEditVO;
+import com.ziheng.system.sysuser.domain.vo.SysUserExportVO;
+import com.ziheng.system.sysuser.domain.vo.SysUserProfileVO;
 import com.ziheng.system.sysuser.domain.vo.SysUserVo;
 import com.ziheng.system.sysuser.mapper.SysUserMapper;
 import com.ziheng.system.sysuser.service.SysUserService;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,9 +54,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     implements SysUserService {
 
     private final SysDeptService sysDeptService;
+    private final SysLoginLogService sysLoginLogService;
+    private final FileService fileService;
 
-    public SysUserServiceImpl(SysDeptService sysDeptService) {
+    public SysUserServiceImpl(SysDeptService sysDeptService, SysLoginLogService sysLoginLogService,
+                              FileService fileService) {
         this.sysDeptService = sysDeptService;
+        this.sysLoginLogService = sysLoginLogService;
+        this.fileService = fileService;
     }
 
     @Override
@@ -269,6 +289,16 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         updateById(update);
     }
 
+    @Override
+    public void export(SysUserQuery query, HttpServletResponse response) {
+        List<SysUserExportVO> vo = baseMapper.selectUserExportList(query);
+        try {
+            ExcelExportUtils.export(vo, SysUserExportVO.class, "用户列表", response.getOutputStream());
+        } catch (IOException e) {
+            throw new BusinessException("导出失败");
+        }
+    }
+
     /**
      * 保存用户角色关联（先删后插）
      */
@@ -277,5 +307,105 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         if (roleIds != null && !roleIds.isEmpty()) {
             baseMapper.insertUserRole(userId, roleIds);
         }
+    }
+
+    private static final DateTimeFormatter LOGIN_TIME_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    /**
+     * 查询用户资料详情（个人中心）。
+     *
+     * <p>基础资料取自 sys_user，最近登录取自最近一条成功登录日志并拼成
+     * "浏览器 · 系统 · IP · 时间 · 地点" 的展示串。</p>
+     */
+    @Override
+    public SysUserProfileVO getUserProfile(Long userId) {
+        SysUser user = getById(userId);
+        if (user == null || "1".equals(user.getDelFlag())) {
+            throw new BusinessException("用户不存在");
+        }
+        SysUserProfileVO vo = SysUserProfileVO.from(user);
+        SysLoginLog latest = sysLoginLogService.getLatestSuccess(userId);
+        if (latest != null) {
+            vo.setLastLoginInfo(buildLastLoginInfo(latest));
+            vo.setLastLoginTime(latest.getLoginTime());
+        }
+        return vo;
+    }
+
+    /**
+     * 拼接最近登录信息：浏览器 · 操作系统 · IP · 时间 · 登录地点。
+     * 任一段缺失时用"未知"兜底，避免前端展示出现 null。
+     */
+    private String buildLastLoginInfo(SysLoginLog log) {
+        String browser = StringUtils.hasText(log.getBrowser()) ? log.getBrowser() : "未知浏览器";
+        String os = StringUtils.hasText(log.getOs()) ? log.getOs() : "未知系统";
+        String ip = StringUtils.hasText(log.getIpAddress()) ? log.getIpAddress() : "未知IP";
+        String time = log.getLoginTime() != null
+                ? LOGIN_TIME_FORMAT.format(LocalDateTime.ofInstant(log.getLoginTime().toInstant(), ZoneId.systemDefault()))
+                : "";
+        String location = StringUtils.hasText(log.getLoginLocation()) ? log.getLoginLocation() : "未知地点";
+        return String.join(" · ", browser, os, ip, time, location);
+    }
+
+    /**
+     * 上传头像并更新当前登录用户的 avatar 字段。
+     * 仅允许 jpg、png（由 FileService 内部校验），返回头像相对存储路径。
+     */
+    @Override
+    public String updateAvatar(MultipartFile file) {
+        Long userId = LoginUserUtils.getUserId();
+        String avatar = fileService.upload(file, FileType.IMAGE);
+        SysUser update = new SysUser();
+        update.setUserId(userId);
+        update.setAvatar(avatar);
+        updateById(update);
+        return avatar;
+    }
+
+    /**
+     * 修改当前登录用户个人信息，仅允许更新昵称、性别、备注三个字段。
+     */
+    @Override
+    public void updateProfile(SysUserUpdateProfileDTO dto) {
+        Long userId = LoginUserUtils.getUserId();
+        SysUser update = new SysUser();
+        update.setUserId(userId);
+        update.setNickname(dto.getNickname());
+        update.setSex(dto.getSex());
+        update.setRemark(dto.getRemark());
+        updateById(update);
+    }
+
+    /**
+     * 修改当前登录用户密码：
+     * 1. 校验原密码是否正确；2. 校验两次新密码一致；3. 使用新盐值重新加密存储。
+     */
+    @Override
+    public void changePassword(SysUserChangePasswordDTO dto) {
+        Long userId = LoginUserUtils.getUserId();
+        SysUser user = getById(userId);
+        if (user == null || "1".equals(user.getDelFlag())) {
+            throw new BusinessException("用户不存在");
+        }
+        // 校验原密码是否正确
+        if (!PasswordUtils.matches(dto.getOldPassword(), user.getPassword(), user.getSalt())) {
+            throw new BusinessException("原密码不正确");
+        }
+        // 校验两次输入的新密码是否一致
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+            throw new BusinessException("两次输入的新密码不一致");
+        }
+        // 使用新的盐值重新加密（三次MD5，与登录校验保持一致）
+        String salt = PasswordUtils.generateSalt();
+        SysUser update = new SysUser();
+        update.setUserId(userId);
+        update.setSalt(salt);
+        update.setPassword(PasswordUtils.encryptTripleMd5(dto.getNewPassword(), salt));
+        update.setUpdateTime(new Date());
+        updateById(update);
+
+        // 当前用户退出登录
+        StpUtil.logout();
     }
 }

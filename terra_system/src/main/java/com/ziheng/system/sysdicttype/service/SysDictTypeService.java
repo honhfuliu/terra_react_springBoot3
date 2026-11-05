@@ -33,4 +33,18 @@ public interface SysDictTypeService extends IService<SysDictType> {
      * @param dictId 字典类型ID
      */
     void deleteDictType(Long dictId);
+
+    /**
+     * 根据字典类型ID查询字典类型编码
+     * @param dictId 字典类型ID
+     * @return 字典类型编码
+     */
+    String getDictTypeById(Long dictId);
+
+
+
+    /**
+     * 根据字典类型编码查询字典类型
+     */
+    SysDictType getByDictType(String dictType);
 }

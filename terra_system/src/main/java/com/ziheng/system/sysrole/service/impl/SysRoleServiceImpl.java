@@ -4,19 +4,24 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ziheng.common.core.domain.PageResult;
+import com.ziheng.common.core.enums.DeleteFlagEnum;
 import com.ziheng.common.exception.BusinessException;
+import com.ziheng.common.util.excel.ExcelExportUtils;
 import com.ziheng.system.sysrole.domain.SysRole;
 import com.ziheng.system.sysrole.domain.dto.SysRoleAddDTO;
 import com.ziheng.system.sysrole.domain.dto.SysRoleQuery;
+import com.ziheng.system.sysrole.domain.vo.SysRoleExportVO;
 import com.ziheng.system.sysrole.domain.vo.SysRoleListVO;
 import com.ziheng.system.sysrole.domain.vo.SysRoleOptionVO;
 import com.ziheng.system.sysrole.service.SysRoleService;
 import com.ziheng.system.sysrole.mapper.SysRoleMapper;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
@@ -108,6 +113,34 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
                     return vo;
                 })
                 .toList();
+    }
+
+    /**
+     * 导出角色列表（Excel）
+     * @param query 查询条件
+     * @param response 响应输出流
+     */
+    @Override
+    public void export(SysRoleQuery query, HttpServletResponse response) {
+        LambdaQueryWrapper<SysRole> wrapper = new LambdaQueryWrapper<SysRole>()
+                .select(SysRole::getRoleId, SysRole::getRoleName, SysRole::getSort,
+                        SysRole::getRoleKey, SysRole::getStatus, SysRole::getCreateTime, SysRole::getRemark)
+                .eq(SysRole::getDelFlag, DeleteFlagEnum.EXIST.getCode())
+                .like(StringUtils.hasText(query.getName()), SysRole::getRoleName, query.getName())
+                .like(StringUtils.hasText(query.getRoleKey()), SysRole::getRoleKey, query.getRoleKey())
+                .eq(StringUtils.hasText(query.getStatus()), SysRole::getStatus, query.getStatus())
+                .ge(StringUtils.hasText(query.getStartTime()), SysRole::getCreateTime, query.getStartTime())
+                .le(StringUtils.hasText(query.getEndTime()), SysRole::getCreateTime, resolveEnd(query.getEndTime()))
+                .orderByAsc(SysRole::getSort)
+                .orderByDesc(SysRole::getCreateTime);
+        List<SysRole> sysRoles = baseMapper.selectList(wrapper);
+
+        List<SysRoleExportVO> voList = SysRoleExportVO.fromList(sysRoles);
+        try {
+            ExcelExportUtils.export(voList, SysRoleExportVO.class, "角色列表", response.getOutputStream());
+        } catch (IOException e) {
+            throw new BusinessException("导出失败");
+        }
     }
 
     /**

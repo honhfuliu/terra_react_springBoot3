@@ -30,6 +30,23 @@
             <artifactId>spring-core</artifactId>
         </dependency>
 
+        <!-- ==================== Spring Web ==================== -->
+        <!-- ServletUtils 需要 RequestContextHolder / ServletRequestAttributes；
+             标 optional：让仅使用 common 的非 Web 模块（将来的定时任务等）不被动引入 spring-web -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- ==================== Servlet API ==================== -->
+        <!-- 仅编译期需要（HttpServletRequest），运行期由容器 Tomcat 提供，不向下游传递 -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- ==================== Jackson ==================== -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -45,6 +62,11 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
         </dependency>
     </dependencies>
 </project>

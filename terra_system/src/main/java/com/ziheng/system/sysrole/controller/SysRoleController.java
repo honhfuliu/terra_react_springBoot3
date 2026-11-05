@@ -1,9 +1,15 @@
 package com.ziheng.system.sysrole.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaMode;
 import com.ziheng.common.core.domain.PageResult;
 import com.ziheng.common.core.domain.R;
+import com.ziheng.system.sysnotice.service.SysNoticeService;
+import com.ziheng.system.sysoperationlog.annotation.OperateLog;
+import com.ziheng.system.sysoperationlog.constant.IdSource;
+import com.ziheng.system.sysoperationlog.constant.OperateModule;
+import com.ziheng.system.sysoperationlog.constant.OperateType;
 import com.ziheng.system.sysrole.domain.dto.SysRoleAddDTO;
 import com.ziheng.system.sysrole.domain.dto.SysRoleQuery;
 import com.ziheng.system.sysrole.domain.vo.SysRoleListVO;
@@ -11,6 +17,7 @@ import com.ziheng.system.sysrole.domain.vo.SysRoleOptionVO;
 import com.ziheng.system.sysrole.service.SysRoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +26,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @RestController
@@ -38,6 +49,8 @@ public class SysRoleController {
     @SaCheckPermission(value = {"system:role:add", "system:role:edit"}, mode = SaMode.OR)
     @PostMapping
     @Operation(summary = "新增或修改角色")
+    @OperateLog(module = OperateModule.ROLE,idSource = IdSource.BODY,
+            type = OperateType.INSERT_UPDATE, idField = "roleId", service = SysRoleService.class)
     public R<Long> add(@Valid @RequestBody SysRoleAddDTO dto) {
         return R.ok(sysRoleService.addRole(dto));
     }
@@ -76,8 +89,24 @@ public class SysRoleController {
     @SaCheckPermission("system:role:delete")
     @PostMapping("/delete")
     @Operation(summary = "删除角色")
+    @OperateLog(module = OperateModule.ROLE,idSource = IdSource.BODY,
+            type = OperateType.DELETE, idField = "roleId", service = SysRoleService.class)
     public R<Void> remove(@RequestBody List<Long> roleIds) {
         sysRoleService.deleteRoles(roleIds);
         return R.ok();
+    }
+
+    /**
+     * 导出角色列表（Excel）
+     */
+    @SaCheckLogin
+    @GetMapping("/export")
+    @Operation(summary = "导出角色")
+    public void export(SysRoleQuery query, HttpServletResponse response) {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("UTF-8");
+        String fileName = "角色列表_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
+        response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+        sysRoleService.export(query, response);
     }
 }

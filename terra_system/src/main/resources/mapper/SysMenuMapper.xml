@@ -28,9 +28,34 @@
         perms,icon,create_time,
         update_time,del_flag
     </sql>
+    <!-- 根据用户ID查询动态路由菜单(M/C)。
+         visible(是否可见)不过滤：隐藏菜单仍需要生成路由（供 URL 直达/详情页），由前端 meta.hidden 控制侧边栏不展示；
+         status=0(禁用)、del_flag=1(已删)的菜单不返回；
+         递归 CTE 向上补齐祖先节点，避免只分配子菜单、父目录未分配时路由树断裂。 -->
     <select id="findMenuTreeByUserId" resultType="com.ziheng.system.sysmenu.domain.SysMenu">
-        select distinct menu_id, menu_name, parent_id, menu_sort,name, path, component,menu_type,visible,status,perms,icon
-        from sys_menu where menu_type in ('M','C') and status = '1' and del_flag = '0' ORDER BY parent_id, menu_sort;
+        WITH RECURSIVE reachable AS (
+            SELECT m.*
+            FROM sys_menu m
+            WHERE m.menu_id IN (
+                SELECT rm.menu_id
+                FROM sys_role_menu rm
+                JOIN sys_user_role ur ON ur.role_id = rm.role_id
+                JOIN sys_role r ON r.role_id = rm.role_id
+                    AND r.status = '1' AND r.del_flag = '0'
+                WHERE ur.user_id = #{userId}
+            )
+            UNION ALL
+            SELECT m.*
+            FROM sys_menu m
+            JOIN reachable rc ON m.menu_id = rc.parent_id
+        )
+        SELECT DISTINCT menu_id, menu_name, parent_id, menu_sort, name, path, component,
+                        menu_type, visible, status, perms, icon, keep_alive, visible
+        FROM reachable
+        WHERE menu_type IN ('M', 'C')
+          AND status = '1'
+          AND del_flag = '0'
+        ORDER BY parent_id, menu_sort;
     </select>
     <select id="findPermissionsByUserId" resultType="java.lang.String">
         select distinct perms

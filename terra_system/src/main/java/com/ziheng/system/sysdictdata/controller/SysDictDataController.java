@@ -3,11 +3,16 @@ package com.ziheng.system.sysdictdata.controller;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaMode;
 import com.ziheng.common.core.domain.R;
+import com.ziheng.system.sysdept.service.SysDeptService;
 import com.ziheng.system.sysdictdata.domain.dto.SysDictDataAddDTO;
 import com.ziheng.system.sysdictdata.domain.vo.SysDictDataEditVO;
 import com.ziheng.system.sysdictdata.domain.vo.SysDictDataListVO;
 import com.ziheng.system.sysdictdata.domain.vo.SysDictOptionVO;
 import com.ziheng.system.sysdictdata.service.SysDictDataService;
+import com.ziheng.system.sysoperationlog.annotation.OperateLog;
+import com.ziheng.system.sysoperationlog.constant.IdSource;
+import com.ziheng.system.sysoperationlog.constant.OperateModule;
+import com.ziheng.system.sysoperationlog.constant.OperateType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -41,6 +46,8 @@ public class SysDictDataController {
     @PostMapping
     @Operation(summary = "新增或修改字典值")
     @SaCheckPermission(value = {"system:dict:data:add", "system:dict:data:edit"}, mode = SaMode.OR)
+    @OperateLog(module = OperateModule.DICT,idSource = IdSource.BODY,
+            type = OperateType.INSERT_UPDATE, idField = "dictCode", service = SysDictDataService.class)
     public R<Long> add(@Valid @RequestBody SysDictDataAddDTO dto) {
         return R.ok(sysDictDataService.addDictData(dto));
     }
@@ -79,6 +86,8 @@ public class SysDictDataController {
     @PostMapping("/delete/{dictCode}")
     @Operation(summary = "删除字典值")
     @SaCheckPermission("system:dict:data:delete")
+    @OperateLog(module = OperateModule.DICT,idSource = IdSource.PATH,
+            type = OperateType.DELETE, idField = "dictCode", service = SysDictDataService.class)
     public R<Void> remove(@PathVariable("dictCode") Long dictCode) {
         sysDictDataService.deleteDictData(dictCode);
         return R.ok();

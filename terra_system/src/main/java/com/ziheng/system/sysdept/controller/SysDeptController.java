@@ -11,6 +11,10 @@ import com.ziheng.system.sysdept.domain.dto.SysDeptSortDTO;
 import com.ziheng.system.sysdept.domain.vo.SysDeptListVO;
 import com.ziheng.system.sysdept.domain.vo.SysDeptTreeVO;
 import com.ziheng.system.sysdept.service.SysDeptService;
+import com.ziheng.system.sysoperationlog.annotation.OperateLog;
+import com.ziheng.system.sysoperationlog.constant.IdSource;
+import com.ziheng.system.sysoperationlog.constant.OperateModule;
+import com.ziheng.system.sysoperationlog.constant.OperateType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,6 +40,8 @@ public class SysDeptController {
     /**
      * 新增或修改部门（dto.deptId 为空则新增，不为空则修改）
      */
+    @OperateLog(module = OperateModule.DEPT,idSource = IdSource.BODY,
+            type = OperateType.INSERT_UPDATE, idField = "deptId", service = SysDeptService.class)
     @SaCheckPermission(value = {"system:dept:add", "system:dept:edit"}, mode = SaMode.OR)
     @PostMapping
     @Operation(summary = "新增或修改部门")
@@ -59,6 +65,8 @@ public class SysDeptController {
     @SaCheckPermission("system:dept:delete")
     @PostMapping("/delete/{deptId}")
     @Operation(summary = "删除部门")
+    @OperateLog(module = OperateModule.DEPT,idSource = IdSource.PATH,
+            type = OperateType.DELETE, idField = "deptId", service = SysDeptService.class)
     public R<Void> remove(@PathVariable("deptId") Long deptId) {
         sysDeptService.deleteDept(deptId);
         return R.ok();

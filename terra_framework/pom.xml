@@ -49,10 +49,12 @@
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-spring-boot3-starter</artifactId>
         </dependency>
-        <!--Sa-Token 的序列化方案，处理框架自身的 JSON/Redis 数据-->
+        <!-- Sa-Token 整合 Redis（RedisTemplate + Jackson 序列化）：
+             必须引入该包，Sa-Token 才会把默认的内存 SaTokenDao 换成 Redis 实现，
+             否则 Redis 配置再正确也不会生效（重启后登录态丢失）。 -->
         <dependency>
             <groupId>cn.dev33</groupId>
-            <artifactId>sa-token-fastjson</artifactId>
+            <artifactId>sa-token-redis-jackson</artifactId>
         </dependency>
         <!-- ==================== MyBatis-Plus ==================== -->
         <dependency>

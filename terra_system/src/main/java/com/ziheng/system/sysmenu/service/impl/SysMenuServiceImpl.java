@@ -52,7 +52,6 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         root.setPath("/");
         root.setComponent("Layout");
         //root.setRedirect("/index");
-        root.setPerms(new ArrayList<>());
         root.setChildren(new ArrayList<>());
         root.setMeta(new MetaVo("", "", true, false));
 
@@ -65,13 +64,11 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
     public List<RouterVO> newBuildMenuTree(List<SysMenu> menus) {
         List<RouterVO> routers = new ArrayList<>();
         menus.forEach(menu ->{
-            System.out.println(menu);
             RouterVO route = new RouterVO();
             route.setName(menu.getName());
             route.setPath(menu.getPath());
             route.setComponent(menu.getComponent());
             route.setRedirect(menu.getRedirect());
-            route.setPerms(new ArrayList<>());
             // meta
             MetaVo meta = new MetaVo();
             meta.setTitle(menu.getMenuName());

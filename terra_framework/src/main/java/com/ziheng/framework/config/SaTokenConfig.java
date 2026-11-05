@@ -16,12 +16,16 @@ public class SaTokenConfig implements WebMvcConfigurer {
             SaRouter.match("/**")
                     .notMatch(
                             "/auth/login",
+                            "/auth/getCode",
                             "/doc.html",
                             "/webjars/**",
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
                             "/swagger-ui.html",
-                            "/excel/**"
+                            "/excel/**",
+                            "/test/**",
+                            "/druid/**",
+                            "/upload/image/**"
                     )
                     .check(r -> StpUtil.checkLogin());
         })).addPathPatterns("/**");

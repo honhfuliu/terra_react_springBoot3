@@ -6,6 +6,10 @@ import com.ziheng.common.core.domain.R;
 import com.ziheng.system.sysdicttype.domain.dto.SysDictTypeAddDTO;
 import com.ziheng.system.sysdicttype.domain.vo.SysDictTypeListVO;
 import com.ziheng.system.sysdicttype.service.SysDictTypeService;
+import com.ziheng.system.sysoperationlog.annotation.OperateLog;
+import com.ziheng.system.sysoperationlog.constant.IdSource;
+import com.ziheng.system.sysoperationlog.constant.OperateModule;
+import com.ziheng.system.sysoperationlog.constant.OperateType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,6 +43,8 @@ public class SysDictTypeController {
     @PostMapping
     @Operation(summary = "新增或修改字典类型")
     @SaCheckPermission(value = {"system:dict:type:add", "system:dict:type:edit"}, mode = SaMode.OR)
+    @OperateLog(module = OperateModule.DICT,idSource = IdSource.BODY,
+            type = OperateType.INSERT_UPDATE, idField = "dictId", service = SysDictTypeService.class)
     public R<Long> add(@Valid @RequestBody SysDictTypeAddDTO dto) {
         return R.ok(sysDictTypeService.addDictType(dto));
     }
@@ -59,6 +65,7 @@ public class SysDictTypeController {
     @SaCheckPermission("system:dict:type:delete")
     @PostMapping("/delete/{dictId}")
     @Operation(summary = "删除字典类型")
+    @OperateLog(module = OperateModule.DICT,idSource = IdSource.PATH, type = OperateType.DELETE, idField = "dictId", service = SysDictTypeService.class)
     public R<Void> remove(@PathVariable("dictId") Long dictId) {
         sysDictTypeService.deleteDictType(dictId);
         return R.ok();

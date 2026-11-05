@@ -86,6 +86,11 @@ public class SysUser implements Serializable {
      */
     private String delFlag;
 
+    /**
+     * 头像
+     */
+    private String avatar;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 

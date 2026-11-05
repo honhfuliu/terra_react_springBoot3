@@ -7,7 +7,11 @@ public enum ResultCode {
     FORBIDDEN(403, "权限不足"),
     NOT_FOUND(404, "资源不存在"),
     INTERNAL_ERROR(500, "系统异常"),
-    RC5001(5001, "测试业务异常");
+    RC5001(5001, "测试业务异常"),
+    USER_NOT_FOUND(4001, "用户不存在"),
+    PASSWORD_ERROR(4002, "密码错误"),
+    CAPTCHA_ERROR(4003, "验证码错误"),
+    USER_DISABLED(4004, "用户已被禁用");
 
     private final int code;
     private final String message;

@@ -3,6 +3,7 @@ package com.ziheng.system.sysmenu.controller;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaMode;
 import com.ziheng.common.core.domain.R;
+import com.ziheng.system.sysdicttype.service.SysDictTypeService;
 import com.ziheng.system.sysmenu.domain.SysMenu;
 import com.ziheng.system.sysmenu.domain.dto.SysMenuAddDTO;
 import com.ziheng.system.sysmenu.domain.dto.SysMenuQuery;
@@ -10,6 +11,10 @@ import com.ziheng.system.sysmenu.domain.dto.SysMenuSortDTO;
 import com.ziheng.system.sysmenu.domain.vo.SysMenuListVO;
 import com.ziheng.system.sysmenu.domain.vo.SysMenuTreeVO;
 import com.ziheng.system.sysmenu.service.SysMenuService;
+import com.ziheng.system.sysoperationlog.annotation.OperateLog;
+import com.ziheng.system.sysoperationlog.constant.IdSource;
+import com.ziheng.system.sysoperationlog.constant.OperateModule;
+import com.ziheng.system.sysoperationlog.constant.OperateType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -62,6 +67,8 @@ public class SysMenuController {
     @SaCheckPermission(value = {"system:menu:add", "system:menu:edit"}, mode = SaMode.OR)
     @PostMapping
     @Operation(summary = "新增或修改菜单")
+    @OperateLog(module = OperateModule.MENU,idSource = IdSource.BODY,
+            type = OperateType.INSERT_UPDATE, idField = "menuId", service = SysMenuService.class)
     public R<Long> add(@Valid @RequestBody SysMenuAddDTO dto) {
         return R.ok(sysMenuService.addMenu(dto));
     }
@@ -81,6 +88,8 @@ public class SysMenuController {
     @SaCheckPermission("system:menu:delete")
     @PostMapping("/delete/{menuId}")
     @Operation(summary = "删除菜单")
+    @OperateLog(module = OperateModule.MENU,idSource = IdSource.PATH,
+            type = OperateType.DELETE, idField = "menuId", service = SysMenuService.class)
     public R<Void> remove(@PathVariable("menuId") Long menuId) {
         sysMenuService.deleteMenu(menuId);
         return R.ok();

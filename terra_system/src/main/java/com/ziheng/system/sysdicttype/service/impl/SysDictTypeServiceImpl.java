@@ -1,10 +1,13 @@
 package com.ziheng.system.sysdicttype.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ziheng.common.exception.BusinessException;
+import com.ziheng.framework.cache.CacheKey;
+import com.ziheng.framework.cache.RedisCacheService;
 import com.ziheng.system.sysdictdata.domain.SysDictData;
-import com.ziheng.system.sysdictdata.service.SysDictDataService;
+import com.ziheng.system.sysdictdata.mapper.SysDictDataMapper;
 import com.ziheng.system.sysdicttype.domain.SysDictType;
 import com.ziheng.system.sysdicttype.domain.dto.SysDictTypeAddDTO;
 import com.ziheng.system.sysdicttype.domain.vo.SysDictTypeListVO;
@@ -22,17 +25,19 @@ import java.util.stream.Collectors;
 
 /**
 * @author Administrator
-* @description 针对表【sys_dict_type(字典类型表)】的数据库操作Service实现
+* @description  针对表【sys_dict_type(字典类型表)】的数据库操作Service实现
 * @createDate 2026-09-03 16:35:21
 */
 @Service
 public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDictType>
     implements SysDictTypeService {
 
-    private final SysDictDataService sysDictDataService;
+    private final SysDictDataMapper sysDictDataMapper;
+    private final RedisCacheService redisCacheService;
 
-    public SysDictTypeServiceImpl(SysDictDataService sysDictDataService) {
-        this.sysDictDataService = sysDictDataService;
+    public SysDictTypeServiceImpl(SysDictDataMapper sysDictDataMapper, RedisCacheService redisCacheService) {
+        this.sysDictDataMapper = sysDictDataMapper;
+        this.redisCacheService = redisCacheService;
     }
 
     /**
@@ -86,6 +91,8 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         }
         dictType.setUpdateTime(new Date());
         updateById(dictType);
+        // 删除缓存
+        redisCacheService.delete(CacheKey.DICT, old.getDictType());
     }
 
     /**
@@ -115,16 +122,47 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteDictType(Long dictId) {
-        if (getById(dictId) == null) {
+        SysDictType dictType = getById(dictId);
+        if (dictType == null) {
             throw new BusinessException("字典不存在");
         }
-        long count = sysDictDataService.lambdaQuery()
-                .eq(SysDictData::getDictId, dictId)
-                .count();
+        long count = sysDictDataMapper.selectCount(
+                new LambdaQueryWrapper<SysDictData>()
+                        .eq(SysDictData::getDictId, dictId)
+        );
         if (count > 0) {
             throw new BusinessException("该字典类型下还有 " + count + " 个字典值，请先删除字典值后再删除字典类型");
         }
         removeById(dictId);
+        // 删除缓存
+        redisCacheService.delete(CacheKey.DICT, dictType.getDictType());
+    }
+
+    @Override
+    public String getDictTypeById(Long dictId) {
+        LambdaQueryWrapper<SysDictType> last = new LambdaQueryWrapper<SysDictType>()
+                .eq(SysDictType::getDictId, dictId)
+                .select(SysDictType::getDictType);
+        SysDictType sysDictType = baseMapper.selectOne(last);
+        if (sysDictType == null) {
+            return null;
+        }
+        return sysDictType.getDictType();
+    }
+
+    /**
+     * 根据字典类型编码查询字典类型
+     * @param dictType
+     * @return
+     */
+    @Override
+    public SysDictType getByDictType(String dictType) {
+        if (!StringUtils.hasText(dictType)) {
+            return null;
+        }
+        return lambdaQuery()
+                .eq(SysDictType::getDictType, dictType)
+                .one();
     }
 
     /**
@@ -135,10 +173,13 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
                 .in("dict_id", dictIds)
                 .select("dict_id", "COUNT(*) AS cnt")
                 .groupBy("dict_id");
-        return sysDictDataService.listMaps(wrapper).stream()
+
+        return sysDictDataMapper.selectMaps(wrapper)
+                .stream()
                 .collect(Collectors.toMap(
                         m -> ((Number) m.get("dict_id")).longValue(),
-                        m -> ((Number) m.get("cnt")).longValue()));
+                        m -> ((Number) m.get("cnt")).longValue()
+                ));
     }
 
     /**

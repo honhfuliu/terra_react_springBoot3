@@ -1,6 +1,5 @@
 package com.ziheng.system.sysdicttype.domain.vo;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ziheng.system.sysdicttype.domain.SysDictType;
 import lombok.Data;
 
@@ -35,7 +34,7 @@ public class SysDictTypeListVO {
     /**
      * 更新时间
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    // @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date updateTime;
 
     /**

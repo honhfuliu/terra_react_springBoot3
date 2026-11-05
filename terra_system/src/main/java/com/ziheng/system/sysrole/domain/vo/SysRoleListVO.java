@@ -1,10 +1,8 @@
 package com.ziheng.system.sysrole.domain.vo;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ziheng.system.sysrole.domain.SysRole;
 import lombok.Data;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -41,7 +39,8 @@ public class SysRoleListVO {
     /**
      * 创建时间（yyyy-MM-dd HH:mm:ss）
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+
+    // @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
 
 

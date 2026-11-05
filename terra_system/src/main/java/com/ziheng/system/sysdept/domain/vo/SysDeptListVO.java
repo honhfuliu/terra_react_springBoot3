@@ -1,6 +1,5 @@
 package com.ziheng.system.sysdept.domain.vo;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ziheng.system.sysdept.domain.SysDept;
 import lombok.Data;
 
@@ -38,7 +37,7 @@ public class SysDeptListVO implements Serializable {
     /**
      * 创建时间
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    // @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
 
     /**

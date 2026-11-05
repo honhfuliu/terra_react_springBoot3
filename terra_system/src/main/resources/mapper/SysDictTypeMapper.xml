@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="generator.mapper.SysDictTypeMapper">
+<mapper namespace="com.ziheng.system.sysdicttype.mapper.SysDictTypeMapper">
 
-    <resultMap id="BaseResultMap" type="generator.domain.SysDictType">
+    <resultMap id="BaseResultMap" type="com.ziheng.system.sysdicttype.domain.SysDictType">
             <id property="dictId" column="dict_id" />
             <result property="dictName" column="dict_name" />
             <result property="dictType" column="dict_type" />

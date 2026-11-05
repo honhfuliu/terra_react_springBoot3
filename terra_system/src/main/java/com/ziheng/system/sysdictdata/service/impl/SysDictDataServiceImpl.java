@@ -2,7 +2,10 @@ package com.ziheng.system.sysdictdata.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.ziheng.common.exception.BusinessException;
+import com.ziheng.framework.cache.CacheKey;
+import com.ziheng.framework.cache.RedisCacheService;
 import com.ziheng.system.sysdictdata.domain.SysDictData;
 import com.ziheng.system.sysdictdata.domain.dto.SysDictDataAddDTO;
 import com.ziheng.system.sysdictdata.domain.vo.SysDictDataEditVO;
@@ -12,6 +15,7 @@ import com.ziheng.system.sysdictdata.mapper.SysDictDataMapper;
 import com.ziheng.system.sysdictdata.service.SysDictDataService;
 import com.ziheng.system.sysdicttype.domain.SysDictType;
 import com.ziheng.system.sysdicttype.mapper.SysDictTypeMapper;
+import com.ziheng.system.sysdicttype.service.SysDictTypeService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +23,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
 * @author Administrator
@@ -29,11 +34,13 @@ import java.util.List;
 public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDictData>
     implements SysDictDataService {
 
-    // 直接注入 Mapper 而非 SysDictTypeService，避免与 SysDictTypeServiceImpl（已依赖 SysDictDataService）形成循环依赖
-    private final SysDictTypeMapper sysDictTypeMapper;
 
-    public SysDictDataServiceImpl(SysDictTypeMapper sysDictTypeMapper) {
-        this.sysDictTypeMapper = sysDictTypeMapper;
+    private final RedisCacheService redisCacheService;
+    private final SysDictTypeService sysDictTypeService;
+
+    public SysDictDataServiceImpl(RedisCacheService redisCacheService, SysDictTypeService sysDictTypeService) {
+        this.redisCacheService = redisCacheService;
+        this.sysDictTypeService = sysDictTypeService;
     }
 
     /**
@@ -43,8 +50,9 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
     @Transactional(rollbackFor = Exception.class)
     public Long addDictData(SysDictDataAddDTO dto) {
         // 校验所属字典类型存在
-        if (sysDictTypeMapper.selectById(dto.getDictId()) == null) {
-            throw new BusinessException("所属字典类型不存在");
+        SysDictType dictType = sysDictTypeService.getById(dto.getDictId());
+        if (dictType == null) {
+            throw new BusinessException("字典类型不存在");
         }
         Long dictCode = dto.getDictCode();
         if (dictCode == null) {
@@ -52,6 +60,8 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
         } else {
             updateDictData(dto);
         }
+        // 新增、修改后都清除字典缓存
+        redisCacheService.delete(CacheKey.DICT, dictType.getDictType());
         return dictCode;
     }
 
@@ -121,13 +131,18 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
      */
     @Override
     public List<SysDictOptionVO> listDictOptions(String dictType) {
-        SysDictType dictTypeRow = sysDictTypeMapper.selectOne(new LambdaQueryWrapper<SysDictType>()
-                .eq(SysDictType::getDictType, dictType));
+        // 查询缓存
+        List<SysDictOptionVO> cached = redisCacheService.get(CacheKey.DICT, dictType, new TypeReference<>() {});
+        if (cached != null) {
+            return cached;
+        }
+
+        SysDictType dictTypeRow = sysDictTypeService.getByDictType(dictType);
         if (dictTypeRow == null) {
             throw new BusinessException("字典类型不存在：" + dictType);
         }
         // 仅返回启用的字典值（停用的值不展示到页面）
-        return lambdaQuery()
+        List<SysDictOptionVO> result = lambdaQuery()
                 .eq(SysDictData::getDictId, dictTypeRow.getDictId())
                 .eq(SysDictData::getStatus, "1")
                 .orderByAsc(SysDictData::getDictSort)
@@ -135,7 +150,10 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
                 .list()
                 .stream()
                 .map(SysDictOptionVO::from)
-                .toList();
+                .collect(Collectors.toList());
+        redisCacheService.set(CacheKey.DICT, dictType, result);
+
+        return result;
     }
 
     /**
@@ -153,12 +171,22 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
     }
 
     /**
-     * 删除字典值（支持单条或批量，物理删除）
+     * 删除字典值（物理删除）
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteDictData(Long dictCode) {
+        SysDictData old = getById(dictCode);
+        if (old == null) {
+            throw new BusinessException("字典值不存在");
+        }
+        // 根据 dictId 获取字典类型编码
+        String dictType = sysDictTypeService.getDictTypeById(old.getDictId());
+
         removeById(dictCode);
+
+        // 删除对应字典缓存
+        redisCacheService.delete(CacheKey.DICT, dictType);
 
     }
 }

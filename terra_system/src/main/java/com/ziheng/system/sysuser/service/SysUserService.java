@@ -6,9 +6,15 @@ import com.ziheng.system.sysuser.domain.SysUser;
 import com.ziheng.system.sysuser.domain.dto.SysUserAddDTO;
 import com.ziheng.system.sysuser.domain.dto.SysUserQuery;
 import com.ziheng.system.sysuser.domain.dto.SysUserResetPasswordDTO;
+import com.ziheng.system.sysuser.domain.dto.SysUserUpdateProfileDTO;
+import com.ziheng.system.sysuser.domain.dto.SysUserChangePasswordDTO;
 import com.ziheng.system.sysuser.domain.vo.SysUserEditVO;
+import com.ziheng.system.sysuser.domain.vo.SysUserProfileVO;
 import com.ziheng.system.sysuser.domain.vo.SysUserVo;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 
@@ -39,6 +45,13 @@ public interface SysUserService extends IService<SysUser> {
      */
     SysUserEditVO getUserDetail(Long userId);
 
+    /**
+     * 查询用户资料详情（个人中心）：基础资料 + 最近一次成功登录信息
+     * @param userId 用户ID
+     * @return 用户资料
+     */
+    SysUserProfileVO getUserProfile(Long userId);
+
 
     /**
      * 删除用户（支持单条或批量），逻辑删除并清理用户角色关联
@@ -47,8 +60,34 @@ public interface SysUserService extends IService<SysUser> {
     void deleteUsers(List<Long> userIds);
 
     /**
+     * 上传并更新当前登录用户头像
+     * @param file 头像文件（仅允许 jpg、png）
+     * @return 头像存储相对路径
+     */
+    String updateAvatar(MultipartFile file);
+
+    /**
+     * 修改当前登录用户个人信息（仅昵称、性别、备注）
+     * @param dto 待更新信息
+     */
+    void updateProfile(SysUserUpdateProfileDTO dto);
+
+    /**
+     * 修改当前登录用户密码
+     * @param dto 原密码、新密码、确认新密码
+     */
+    void changePassword(SysUserChangePasswordDTO dto);
+
+    /**
      * 重置用户密码（重新生成盐值并加密存储）
      * @param dto 重置密码参数
      */
     void resetPassword(SysUserResetPasswordDTO dto);
+
+    /**
+     * 导出用户列表
+     * @param query 查询参数
+     * @param response 响应对象
+     */
+    void export(SysUserQuery query, HttpServletResponse response);
 }

@@ -2,6 +2,8 @@ package com.ziheng.system.sysuser.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ziheng.system.sysuser.domain.SysUser;
+import com.ziheng.system.sysuser.domain.dto.SysUserQuery;
+import com.ziheng.system.sysuser.domain.vo.SysUserExportVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -35,6 +37,12 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
      */
     List<Long> selectRoleIdsByUserId(@Param("userId") Long userId);
 
+    /**
+     * 查询用户列表（导出）
+     * @param query
+     * @return
+     */
+    List<SysUserExportVO> selectUserExportList(@Param("query") SysUserQuery query);
 }
 
 
