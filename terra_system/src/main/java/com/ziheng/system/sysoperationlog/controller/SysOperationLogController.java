@@ -73,6 +73,7 @@ public class SysOperationLogController {
      */
     @SaCheckLogin
     @GetMapping("/export")
+    @SaCheckPermission("system:operationLog:export")
     @Operation(summary = "导出操作日志")
     public void export(SysOperationLogQuery query, HttpServletResponse response) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

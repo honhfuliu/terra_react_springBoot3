@@ -3,9 +3,9 @@ spring:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
     druid:
-      url: jdbc:mysql://localhost:3306/terra?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
-      username: root
-      password: root
+      url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
       # 初始连接数
       initialSize: 5
       # 最小连接池数量
@@ -33,24 +33,24 @@ spring:
       # 在归还连接到连接池时进行测试
       testOnReturn: false
       # 监控 Web 应用的所有请求，统计 URI 访问、执行时间等
-#      webStatFilter:
-#        enabled: true
-#      # 开启 Druid 内置的监控管理页面
-#      statViewServlet:
-#        enabled: true
-#        # 设置白名单，不填则允许所有访问
-#        allow:
-#        url-pattern: /druid/*
-#        # 控制台管理用户名和密码
-#        login-username: admin
-#        login-password: 123456
-#      filter:
-#        stat:
-#          enabled: true
+      webStatFilter:
+        enabled: true
+      # 开启 Druid 内置的监控管理页面
+      statViewServlet:
+        enabled: true
+        # 设置白名单，不填则允许所有访问
+        allow:
+        url-pattern: /druid/*
+        # 控制台管理用户名和密码
+        login-username: admin
+        login-password: 123456
+      filter:
+        stat:
+          enabled: true
 #          # 慢SQL记录
-#          log-slow-sql: true
-#          slow-sql-millis: 1000
-#          merge-sql: true
+          log-slow-sql: true
+          slow-sql-millis: 1000
+          merge-sql: true
 #        wall:
 #          config:
 #            multi-statement-allow: true
@@ -59,6 +59,7 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto

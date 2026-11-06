@@ -2,6 +2,8 @@ package com.ziheng.system.sysdept.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ziheng.common.exception.BusinessException;
+import com.ziheng.common.core.enums.DeleteFlagEnum;
+import com.ziheng.common.core.enums.EnableStatusEnum;
 import com.ziheng.system.sysdept.domain.SysDept;
 import com.ziheng.system.sysdept.domain.dto.SysDeptAddDTO;
 import com.ziheng.system.sysdept.domain.dto.SysDeptQuery;
@@ -76,9 +78,9 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
         BeanUtils.copyProperties(dto, dept);
         dept.setParentId(parentId);
         if (!StringUtils.hasText(dept.getStatus())) {
-            dept.setStatus("1");
+            dept.setStatus(EnableStatusEnum.ENABLED.getCode());
         }
-        dept.setDelFlag("0");
+        dept.setDelFlag(DeleteFlagEnum.EXIST.getCode());
         Date now = new Date();
         dept.setCreateTime(now);
         dept.setUpdateTime(now);
@@ -118,7 +120,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
         BeanUtils.copyProperties(dto, dept);
         dept.setParentId(parentId);
         if (!StringUtils.hasText(dept.getStatus())) {
-            dept.setStatus("1");
+            dept.setStatus(EnableStatusEnum.ENABLED.getCode());
         }
         dept.setUpdateTime(new Date());
         updateById(dept);
@@ -152,7 +154,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
         if (parentId == null || parentId == 0L || Objects.equals(deptId, parentId)) {
             return Objects.equals(deptId, parentId);
         }
-        List<SysDept> deptList = lambdaQuery().eq(SysDept::getDelFlag, "0").list();
+        List<SysDept> deptList = lambdaQuery().eq(SysDept::getDelFlag, DeleteFlagEnum.EXIST.getCode()).list();
         Map<Long, Long> parentMap = deptList.stream()
                 .collect(Collectors.toMap(SysDept::getDeptId, SysDept::getParentId, (a, b) -> a));
         Long current = parentMap.get(parentId);
@@ -174,7 +176,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
         // 校验是否存在子部门
         long childCount = lambdaQuery()
                 .eq(SysDept::getParentId, deptId)
-                .eq(SysDept::getDelFlag, "0")
+                .eq(SysDept::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .count();
         if (childCount > 0) {
             throw new BusinessException("存在下级部门，不允许删除");
@@ -182,7 +184,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
         // 逻辑删除
         SysDept update = new SysDept();
         update.setDeptId(deptId);
-        update.setDelFlag("1");
+        update.setDelFlag(DeleteFlagEnum.DELETED.getCode());
         update.setUpdateTime(new Date());
         updateById(update);
     }
@@ -191,7 +193,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
     public List<SysDeptTreeVO> listDeptTree() {
         // 查询所有未删除的部门，按显示排序升序
         List<SysDept> deptList = lambdaQuery()
-                .eq(SysDept::getDelFlag, "0")
+                .eq(SysDept::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .orderByAsc(SysDept::getSortOrder)
                 .list();
         return buildDeptTree(deptList, 0L);
@@ -201,7 +203,7 @@ public class SysDeptServiceImpl extends ServiceImpl<SysDeptMapper, SysDept>
     public List<SysDeptListVO> listDeptList(SysDeptQuery query) {
         // 查询所有未删除的部门，按显示排序升序
         List<SysDept> allDeptList = lambdaQuery()
-                .eq(SysDept::getDelFlag, "0")
+                .eq(SysDept::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .orderByAsc(SysDept::getSortOrder)
                 .list();
 

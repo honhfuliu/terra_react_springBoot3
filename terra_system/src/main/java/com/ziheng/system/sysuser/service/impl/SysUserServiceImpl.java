@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ziheng.common.core.domain.PageResult;
 import com.ziheng.common.core.enums.DeleteFlagEnum;
+import com.ziheng.common.core.enums.EnableStatusEnum;
+import com.ziheng.common.core.enums.GenderEnum;
 import com.ziheng.common.exception.BusinessException;
 import com.ziheng.common.file.FileService;
 import com.ziheng.common.file.FileType;
@@ -68,7 +70,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     public PageResult<SysUserVo> listUsers(SysUserQuery query) {
         Page<SysUser> page = Page.of(query.getPageNum(), query.getPageSize());
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getDelFlag, "0")
+                .eq(SysUser::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .like(StringUtils.hasText(query.getUsername()), SysUser::getUsername, query.getUsername())
                 .like(StringUtils.hasText(query.getPhone()), SysUser::getPhone, query.getPhone())
                 .eq(query.getStatus() != null, SysUser::getStatus, query.getStatus())
@@ -143,7 +145,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     public SysUserEditVO getUserDetail(Long userId) {
         SysUser user = getById(userId);
-        if (user == null || "1".equals(user.getDelFlag())) {
+        if (user == null || DeleteFlagEnum.DELETED.getCode().equals(user.getDelFlag())) {
             throw new BusinessException("用户不存在");
         }
         SysUserEditVO vo = new SysUserEditVO();
@@ -166,12 +168,12 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         Date now = new Date();
         for (Long userId : userIds) {
             SysUser user = getById(userId);
-            if (user == null || "1".equals(user.getDelFlag())) {
+            if (user == null || DeleteFlagEnum.DELETED.getCode().equals(user.getDelFlag())) {
                 throw new BusinessException("用户不存在：" + userId);
             }
             SysUser update = new SysUser();
             update.setUserId(userId);
-            update.setDelFlag("1");
+            update.setDelFlag(DeleteFlagEnum.DELETED.getCode());
             update.setUpdateTime(now);
             updateById(update);
             // 清理用户角色关联
@@ -198,15 +200,15 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
         user.setSalt(salt);
         user.setPassword(PasswordUtils.encryptTripleMd5(dto.getPassword(), salt));
         if (!StringUtils.hasText(user.getStatus())) {
-            user.setStatus("1");
+            user.setStatus(EnableStatusEnum.ENABLED.getCode());
         }
         if (!StringUtils.hasText(user.getSex())) {
-            user.setSex("0");
+            user.setSex(GenderEnum.UNKNOWN.getCode());
         }
         Date now = new Date();
         user.setCreateTime(now);
         user.setUpdateTime(now);
-        user.setDelFlag("0");
+        user.setDelFlag(DeleteFlagEnum.EXIST.getCode());
         save(user);
         return user.getUserId();
     }
@@ -272,7 +274,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     public void resetPassword(SysUserResetPasswordDTO dto) {
         Long userId = dto.getUserId();
         SysUser user = getById(userId);
-        if (user == null || "1".equals(user.getDelFlag())) {
+        if (user == null || DeleteFlagEnum.DELETED.getCode().equals(user.getDelFlag())) {
             throw new BusinessException("用户不存在");
         }
         // 用户名二次确认，防止误操作他人账号
@@ -321,7 +323,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     @Override
     public SysUserProfileVO getUserProfile(Long userId) {
         SysUser user = getById(userId);
-        if (user == null || "1".equals(user.getDelFlag())) {
+        if (user == null || DeleteFlagEnum.DELETED.getCode().equals(user.getDelFlag())) {
             throw new BusinessException("用户不存在");
         }
         SysUserProfileVO vo = SysUserProfileVO.from(user);
@@ -385,7 +387,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser>
     public void changePassword(SysUserChangePasswordDTO dto) {
         Long userId = LoginUserUtils.getUserId();
         SysUser user = getById(userId);
-        if (user == null || "1".equals(user.getDelFlag())) {
+        if (user == null || DeleteFlagEnum.DELETED.getCode().equals(user.getDelFlag())) {
             throw new BusinessException("用户不存在");
         }
         // 校验原密码是否正确

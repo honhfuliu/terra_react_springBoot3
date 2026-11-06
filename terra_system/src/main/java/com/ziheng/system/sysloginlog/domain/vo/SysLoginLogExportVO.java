@@ -1,6 +1,6 @@
 package com.ziheng.system.sysloginlog.domain.vo;
 
-import com.ziheng.common.core.enums.EnableStatusEnum;
+import com.ziheng.common.core.enums.ExecuteStatus;
 import com.ziheng.common.util.excel.annotation.ExcelColumn;
 import com.ziheng.system.sysloginlog.domain.SysLoginLog;
 import lombok.Data;
@@ -58,7 +58,7 @@ public class SysLoginLogExportVO {
             vo.setBrowser(log.getBrowser());
             vo.setOs(log.getOs());
             vo.setLoginType(log.getLoginType());
-            vo.setStatus(EnableStatusEnum.getDescription(log.getStatus()));
+            vo.setStatus(ExecuteStatus.getDescription(log.getStatus()));
             vo.setMessage(log.getMessage());
             vo.setLoginTime(log.getLoginTime());
             result.add(vo);

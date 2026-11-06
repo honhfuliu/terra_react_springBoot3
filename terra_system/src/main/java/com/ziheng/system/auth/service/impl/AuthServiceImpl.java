@@ -3,6 +3,7 @@ package com.ziheng.system.auth.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ziheng.common.exception.BusinessException;
+import com.ziheng.common.core.enums.DeleteFlagEnum;
 import com.ziheng.common.core.enums.ResultCode;
 import com.ziheng.common.util.PasswordUtils;
 import com.ziheng.system.auth.domain.dto.LoginBody;
@@ -39,7 +40,7 @@ public class AuthServiceImpl implements AuthService {
 
         SysUser user = sysUserMapper.selectOne(
                 new LambdaQueryWrapper<SysUser>()
-                        .eq(SysUser::getDelFlag, "0")
+                        .eq(SysUser::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                         .eq(SysUser::getUsername, loginBody.getUsername())
         );
 

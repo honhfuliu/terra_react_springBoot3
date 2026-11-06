@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ziheng.common.core.domain.PageResult;
 import com.ziheng.common.core.enums.DeleteFlagEnum;
+import com.ziheng.common.core.enums.EnableStatusEnum;
 import com.ziheng.common.exception.BusinessException;
 import com.ziheng.common.util.excel.ExcelExportUtils;
 import com.ziheng.system.sysrole.domain.SysRole;
@@ -79,7 +80,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     public PageResult<SysRoleListVO> listRoles(SysRoleQuery query) {
         Page<SysRole> page = Page.of(query.getPageNum(), query.getPageSize());
         LambdaQueryWrapper<SysRole> wrapper = new LambdaQueryWrapper<SysRole>()
-                .eq(SysRole::getDelFlag, "0")
+                .eq(SysRole::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .like(StringUtils.hasText(query.getName()), SysRole::getRoleName, query.getName())
                 .like(StringUtils.hasText(query.getRoleKey()), SysRole::getRoleKey, query.getRoleKey())
                 .eq(StringUtils.hasText(query.getStatus()), SysRole::getStatus, query.getStatus())
@@ -102,7 +103,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
     @Override
     public List<SysRoleOptionVO> listRoleOptions() {
         return lambdaQuery()
-                .eq(SysRole::getDelFlag, "0")
+                .eq(SysRole::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .orderByAsc(SysRole::getSort)
                 .list()
                 .stream()
@@ -180,7 +181,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
             // 逻辑删除
             SysRole update = new SysRole();
             update.setRoleId(roleId);
-            update.setDelFlag("1");
+            update.setDelFlag(DeleteFlagEnum.DELETED.getCode());
             update.setUpdateTime(now);
             updateById(update);
             // 清理角色菜单关联
@@ -199,12 +200,12 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole>
         SysRole role = new SysRole();
         BeanUtils.copyProperties(dto, role);
         if (!StringUtils.hasText(role.getStatus())) {
-            role.setStatus("1");
+            role.setStatus(EnableStatusEnum.ENABLED.getCode());
         }
         Date now = new Date();
         role.setCreateTime(now);
         role.setUpdateTime(now);
-        role.setDelFlag("0");
+        role.setDelFlag(DeleteFlagEnum.EXIST.getCode());
         save(role);
         return role.getRoleId();
     }

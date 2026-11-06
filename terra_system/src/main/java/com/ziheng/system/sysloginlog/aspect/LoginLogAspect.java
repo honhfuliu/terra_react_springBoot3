@@ -3,6 +3,7 @@ package com.ziheng.system.sysloginlog.aspect;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
 import com.ziheng.common.core.domain.R;
+import com.ziheng.common.core.enums.ExecuteStatus;
 import com.ziheng.common.util.ServletUtils;
 import com.ziheng.system.auth.domain.dto.LoginBody;
 import com.ziheng.system.auth.domain.vo.LoginVo;
@@ -50,13 +51,6 @@ public class LoginLogAspect {
 
     private static final Logger log = LoggerFactory.getLogger(LoginLogAspect.class);
 
-    /** 登录状态：1 成功（数据库 CHAR(1)，与 SysLoginLog.status 的注释保持一致） */
-    private static final String STATUS_SUCCESS = "1";
-
-    /** 登录状态：0 失败 */
-    private static final String STATUS_FAIL = "0";
-
-
     private final SysLoginLogService sysLoginLogService;
 
     public LoginLogAspect(SysLoginLogService sysLoginLogService) {
@@ -81,13 +75,13 @@ public class LoginLogAspect {
         try {
             Object result = point.proceed();
             // ② 正常返回即登录成功
-            entity.setStatus(STATUS_SUCCESS);
+            entity.setStatus(ExecuteStatus.SUCCESS.getCode());
             entity.setMessage("登录成功");
             fillUserIdOnSuccess(entity, result);
             return result;
         } catch (Throwable e) {
             // ③ 业务异常（密码错误、账号停用、验证码错误等）记为登录失败
-            entity.setStatus(STATUS_FAIL);
+            entity.setStatus(ExecuteStatus.FAIL.getCode());
             entity.setMessage(StrUtil.blankToDefault(e.getMessage(), e.getClass().getSimpleName()));
             // 继续抛出，交给 GlobalExceptionHandler 统一返回给前端
             throw e;

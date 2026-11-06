@@ -2,4 +2,6 @@ spring:
   application:
     name: terra-admin
   profiles:
-    active: druid, dev
+    # 默认 druid + dev；生产通过启动参数或环境变量覆盖：
+    # java -jar terra-admin.jar --spring.profiles.active=druid,prod
+    active: ${SPRING_PROFILES_ACTIVE}

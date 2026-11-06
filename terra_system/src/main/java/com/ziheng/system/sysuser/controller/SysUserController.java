@@ -153,7 +153,7 @@ public class SysUserController {
 
     @SaCheckLogin
     @GetMapping("/export")
-    // @SaCheckPermission("system:user:export")
+    @SaCheckPermission("system:user:export")
     @Operation(summary = "导出用户")
     public void export(SysUserQuery query, HttpServletResponse response) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

@@ -7,6 +7,7 @@ import com.ziheng.common.exception.BusinessException;
 import com.ziheng.framework.cache.CacheKey;
 import com.ziheng.framework.cache.RedisCacheService;
 import com.ziheng.system.sysdictdata.domain.SysDictData;
+import com.ziheng.system.sysdictdata.domain.enums.DictStatus;
 import com.ziheng.system.sysdictdata.mapper.SysDictDataMapper;
 import com.ziheng.system.sysdicttype.domain.SysDictType;
 import com.ziheng.system.sysdicttype.domain.dto.SysDictTypeAddDTO;
@@ -64,7 +65,7 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         BeanUtils.copyProperties(dto, dictType);
         // 状态为空默认启用(0正常)
         if (!StringUtils.hasText(dictType.getStatus())) {
-            dictType.setStatus("0");
+            dictType.setStatus(DictStatus.NORMAL.getCode());
         }
         Date now = new Date();
         dictType.setCreateTime(now);

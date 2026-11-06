@@ -6,6 +6,7 @@ import com.ziheng.system.sysnotice.domain.SysNotice;
 import com.ziheng.system.sysnotice.domain.dto.SysNoticeAddDTO;
 import com.ziheng.system.sysnotice.domain.dto.SysNoticeQuery;
 import com.ziheng.system.sysnotice.domain.vo.SysNoticeDetailVo;
+import com.ziheng.system.sysnotice.domain.vo.SysNoticeLatestVO;
 import com.ziheng.system.sysnotice.domain.vo.SysNoticeVo;
 
 import java.util.List;
@@ -53,4 +54,11 @@ public interface SysNoticeService extends IService<SysNotice> {
      * 下架公告（状态置为「已下线」，同时记录失效时间）
      */
     void offlineNotice(Long id);
+
+    /**
+     * 查询最新 5 条公告（置顶优先、按发布时间倒序），用于前端 Header 展示
+     *
+     * @return 最新公告列表（最多 5 条）
+     */
+    List<SysNoticeLatestVO> latestNotices();
 }

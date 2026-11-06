@@ -11,8 +11,11 @@ import com.ziheng.system.sysnotice.domain.SysNotice;
 import com.ziheng.system.sysnotice.domain.dto.SysNoticeAddDTO;
 import com.ziheng.system.sysnotice.domain.dto.SysNoticeQuery;
 import com.ziheng.system.sysnotice.domain.vo.SysNoticeDetailVo;
+import com.ziheng.system.sysnotice.domain.vo.SysNoticeLatestVO;
 import com.ziheng.system.sysnotice.domain.vo.SysNoticeVo;
 import com.ziheng.system.sysnotice.mapper.SysNoticeMapper;
+import com.ziheng.system.sysnotice.domain.enums.NoticeStatus;
+import com.ziheng.system.sysnotice.domain.enums.NoticeTop;
 import com.ziheng.system.sysnotice.service.SysNoticeService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -33,19 +36,6 @@ import java.util.Set;
 public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice>
     implements SysNoticeService {
 
-    /** 公告状态：1 待发布（新增时的默认状态，也是唯一允许编辑的状态） */
-    private static final String STATUS_PENDING = "1";
-
-    /** 公告状态：2 已发布 */
-    private static final String STATUS_PUBLISHED = "2";
-
-    /** 公告状态：3 已下线 */
-    private static final String STATUS_OFFLINE = "3";
-
-    /** 是否置顶：1 是、0 否 */
-    private static final String TOP_YES = "1";
-    private static final String TOP_NO = "0";
-
     /**
      * 新增或修改公告（id 为空则新增，不为空则修改）
      */
@@ -65,7 +55,7 @@ public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice
     private Long insertNotice(SysNoticeAddDTO dto) {
         SysNotice notice = new SysNotice();
         BeanUtils.copyProperties(dto, notice);
-        notice.setStatus(STATUS_PENDING);
+        notice.setStatus(NoticeStatus.PENDING.getCode());
         if (notice.getSort() == null) {
             notice.setSort(0);
         }
@@ -90,7 +80,7 @@ public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice
         if (old == null) {
             throw new BusinessException("公告不存在");
         }
-        if (!STATUS_PENDING.equals(old.getStatus())) {
+        if (!NoticeStatus.PENDING.getCode().equals(old.getStatus())) {
             throw new BusinessException("公告不是待发布状态，不允许修改");
         }
         SysNotice notice = new SysNotice();
@@ -172,17 +162,17 @@ public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice
         if (old == null) {
             throw new BusinessException("公告不存在");
         }
-        if (TOP_YES.equals(old.getIsTop())) {
+        if (NoticeTop.YES.getCode().equals(old.getIsTop())) {
             // 已经是置顶，幂等返回，避免无意义的更新
             return;
         }
         update(new LambdaUpdateWrapper<SysNotice>()
-                .set(SysNotice::getIsTop, TOP_NO)
-                .eq(SysNotice::getIsTop, TOP_YES));
+                .set(SysNotice::getIsTop, NoticeTop.NO.getCode())
+                .eq(SysNotice::getIsTop, NoticeTop.YES.getCode()));
 
         SysNotice notice = new SysNotice();
         notice.setId(id);
-        notice.setIsTop(TOP_YES);
+        notice.setIsTop(NoticeTop.YES.getCode());
         notice.setUpdateTime(new Date());
         notice.setUpdateBy(StpUtil.getLoginIdAsLong());
         updateById(notice);
@@ -206,14 +196,14 @@ public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice
             throw new BusinessException("部分公告不存在，请刷新列表后重试");
         }
         for (SysNotice notice : notices) {
-            if (!STATUS_PENDING.equals(notice.getStatus())) {
+            if (!NoticeStatus.PENDING.getCode().equals(notice.getStatus())) {
                 throw new BusinessException("公告「" + notice.getTitle() + "」不是待发布状态，不能发布");
             }
         }
 
         Date now = new Date();
         update(new LambdaUpdateWrapper<SysNotice>()
-                .set(SysNotice::getStatus, STATUS_PUBLISHED)
+                .set(SysNotice::getStatus, NoticeStatus.PUBLISHED.getCode())
                 .set(SysNotice::getPublishTime, now)
                 .set(SysNotice::getUpdateTime, now)
                 .set(SysNotice::getUpdateBy, StpUtil.getLoginIdAsLong())
@@ -231,17 +221,36 @@ public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice
         if (old == null) {
             throw new BusinessException("公告不存在");
         }
-        if (!STATUS_PUBLISHED.equals(old.getStatus())) {
+        if (!NoticeStatus.PUBLISHED.getCode().equals(old.getStatus())) {
             throw new BusinessException("公告不是已发布状态，不能下架");
         }
         Date now = new Date();
         SysNotice notice = new SysNotice();
         notice.setId(id);
-        notice.setStatus(STATUS_OFFLINE);
+        notice.setStatus(NoticeStatus.OFFLINE.getCode());
         notice.setExpireTime(now);
         notice.setUpdateTime(now);
         notice.setUpdateBy(StpUtil.getLoginIdAsLong());
         updateById(notice);
+    }
+
+    /**
+     * 查询最新 5 条公告（置顶优先、按发布时间倒序），用于前端 Header 展示。
+     * <p>排序：置顶优先 → 同为置顶按发布时间倒序 → 非置顶按发布时间倒序；最终只取 5 条。</p>
+     * <p>只返回「已发布」的公告，待发布 / 已下线不应出现在前端公告栏。</p>
+     */
+    @Override
+    public List<SysNoticeLatestVO> latestNotices() {
+        LambdaQueryWrapper<SysNotice> wrapper = new LambdaQueryWrapper<SysNotice>()
+                .select(SysNotice::getId, SysNotice::getNoticeType, SysNotice::getSummary,
+                        SysNotice::getCreateTime, SysNotice::getIsTop, SysNotice::getPublishTime)
+                .eq(SysNotice::getStatus, NoticeStatus.PUBLISHED.getCode())
+                .orderByDesc(SysNotice::getIsTop)
+                .orderByDesc(SysNotice::getPublishTime)
+                .last("LIMIT 5");
+        return list(wrapper).stream()
+                .map(SysNoticeLatestVO::from)
+                .toList();
     }
 }
 

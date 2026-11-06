@@ -134,7 +134,7 @@ public class SysMonitorServiceImpl implements SysMonitorService {
         List<SysLoginLog> loginLogs = sysLoginLogService.list(
                 Wrappers.<SysLoginLog>lambdaQuery()
                         .in(SysLoginLog::getTokenHash, tokenHashes)
-                        .eq(SysLoginLog::getStatus, "1")
+                        .eq(SysLoginLog::getStatus, ExecuteStatus.SUCCESS.getCode())
                         .orderByDesc(SysLoginLog::getLoginTime)
         );
 

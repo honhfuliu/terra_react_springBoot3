@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ziheng.common.core.domain.PageResult;
+import com.ziheng.common.core.enums.ExecuteStatus;
 import com.ziheng.common.exception.BusinessException;
 import com.ziheng.common.util.excel.ExcelExportUtils;
 import com.ziheng.system.sysloginlog.domain.SysLoginLog;
@@ -98,7 +99,7 @@ public class SysLoginLogServiceImpl extends ServiceImpl<SysLoginLogMapper, SysLo
         }
         return lambdaQuery()
                 .eq(SysLoginLog::getUserId, userId)
-                .eq(SysLoginLog::getStatus, "1")
+                .eq(SysLoginLog::getStatus, ExecuteStatus.SUCCESS.getCode())
                 .orderByDesc(SysLoginLog::getLoginTime)
                 .last("LIMIT 1")
                 .one();

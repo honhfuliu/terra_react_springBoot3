@@ -101,6 +101,7 @@ public class SysRoleController {
      */
     @SaCheckLogin
     @GetMapping("/export")
+    @SaCheckPermission("system:role:export")
     @Operation(summary = "导出角色")
     public void export(SysRoleQuery query, HttpServletResponse response) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

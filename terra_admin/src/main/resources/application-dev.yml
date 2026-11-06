@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT}
 
 # API 接口配置
 # springdoc-openapi项目配置
@@ -25,27 +25,55 @@ knife4j:
 spring:
   data:
     redis:
-      host: localhost
-      port: 6379
-      password:
-      database: 0
-      timeout: 10s
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      database: ${REDIS_DATABASE}
+      # 命令执行超时（redis 侧网络抖动时快速失败，避免线程被拖死）
+      timeout: 3s
+      # 建立连接超时
+      connect-timeout: 3s
+      client-type: lettuce
       lettuce:
+        # 应用关闭时等待命令执行完的时间
+        shutdown-timeout: 200ms
         pool:
-          max-active: 200
-          max-wait: -1ms
-          max-idle: 10
-          min-idle: 0
+          max-active: 50
+          max-idle: 20
+          # 不要配 0，否则低峰期连接被回收、高峰期集中建连造成抖动
+          min-idle: 5
+          # 不要配 -1（无限等待），池耗尽时应快速失败并暴露问题
+          max-wait: 2s
+          # 空闲连接检测周期
+          time-between-eviction-runs: 30s
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
 
+# 监控配置
+monitor:
+  redis:
+    instance-name: service-redis-dev
 
 # Sa-Token 配置
 sa-token:
   token-prefix: Bearer
   token-name: Authorization
-  timeout: 60000
-  active-timeout: 1800
-  is-concurrent: false
+  timeout: ${SA_TOKEN_TIMEOUT}
+  active-timeout: ${SA_TOKEN_ACTIVE_TIMEOUT}
+  is-concurrent: true
   is-share: false
   token-style: random-128
   is-log: true
   is-read-cookie: false   # 不再从 cookie 里读 token
+
+# 业务自定义配置
+terra:
+  captcha:
+    # 是否开启图形验证码：本地联调、接口压测时可临时改为 false，
+    # 关闭后登录接口不再校验验证码，前端也会隐藏验证码输入框
+    enabled: false
+
+# 文件上传配置
+file:
+  upload-path: ${FILE_UPLOAD_PATH}

@@ -45,6 +45,7 @@ public class SysLoginLogController {
      */
     @SaCheckLogin
     @GetMapping("/export")
+    @SaCheckPermission("system:loginLog:export")
     @Operation(summary = "导出登录日志")
     public void export(SysLoginLogQuery query, HttpServletResponse response) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

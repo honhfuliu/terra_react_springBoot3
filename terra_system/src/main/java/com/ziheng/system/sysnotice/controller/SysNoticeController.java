@@ -1,5 +1,6 @@
 package com.ziheng.system.sysnotice.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaMode;
 import com.ziheng.common.core.domain.PageResult;
@@ -8,6 +9,7 @@ import com.ziheng.system.sysdicttype.service.SysDictTypeService;
 import com.ziheng.system.sysnotice.domain.dto.SysNoticeAddDTO;
 import com.ziheng.system.sysnotice.domain.dto.SysNoticeQuery;
 import com.ziheng.system.sysnotice.domain.vo.SysNoticeDetailVo;
+import com.ziheng.system.sysnotice.domain.vo.SysNoticeLatestVO;
 import com.ziheng.system.sysnotice.domain.vo.SysNoticeVo;
 import com.ziheng.system.sysnotice.service.SysNoticeService;
 import com.ziheng.system.sysoperationlog.annotation.OperateLog;
@@ -59,6 +61,16 @@ public class SysNoticeController {
     @Operation(summary = "公告查询")
     public R<PageResult<SysNoticeVo>> list(SysNoticeQuery query) {
         return R.ok(sysNoticeService.listNotices(query));
+    }
+
+    /**
+     * 查询最新 5 条公告（Header 展示，置顶优先）
+     */
+    @SaCheckLogin
+    @GetMapping("/latest")
+    @Operation(summary = "最新公告(置顶优先,取5条)")
+    public R<List<SysNoticeLatestVO>> latest() {
+        return R.ok(sysNoticeService.latestNotices());
     }
 
     /**

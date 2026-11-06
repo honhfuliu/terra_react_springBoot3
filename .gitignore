@@ -38,4 +38,7 @@ build/
 ### 本地工具生成数据 ###
 .mimocode/
 
-说明.md
+
+.env
+.env.*
+!.env.example

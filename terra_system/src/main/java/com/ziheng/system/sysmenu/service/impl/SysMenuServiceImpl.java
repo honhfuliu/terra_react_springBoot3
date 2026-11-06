@@ -2,8 +2,13 @@ package com.ziheng.system.sysmenu.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ziheng.common.core.enums.DeleteFlagEnum;
+import com.ziheng.common.core.enums.EnableStatusEnum;
 import com.ziheng.common.exception.BusinessException;
 import com.ziheng.system.sysmenu.domain.SysMenu;
+import com.ziheng.system.sysmenu.domain.enums.MenuCache;
+import com.ziheng.system.sysmenu.domain.enums.MenuType;
+import com.ziheng.system.sysmenu.domain.enums.MenuVisible;
 import com.ziheng.system.sysmenu.domain.dto.SysMenuAddDTO;
 import com.ziheng.system.sysmenu.domain.dto.SysMenuQuery;
 import com.ziheng.system.sysmenu.domain.dto.SysMenuSortDTO;
@@ -73,8 +78,8 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
             MetaVo meta = new MetaVo();
             meta.setTitle(menu.getMenuName());
             meta.setIcon(menu.getIcon());
-            meta.setHidden(!"1".equals(menu.getVisible()));
-            meta.setKeepAlive("1".equals(menu.getKeepAlive()));
+            meta.setHidden(!MenuVisible.VISIBLE.getCode().equals(menu.getVisible()));
+            meta.setKeepAlive(MenuCache.CACHE.getCode().equals(menu.getKeepAlive()));
             route.setMeta(meta);
 
             // 递归处理子路由
@@ -98,7 +103,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
     public List<SysMenuTreeVO> listMenuTree(Boolean needRoot) {
         // 查询所有未删除的菜单
         List<SysMenu> menuList = lambdaQuery()
-                .eq(SysMenu::getDelFlag, "0")
+                .eq(SysMenu::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .orderByAsc(SysMenu::getMenuId)
                 .list();
         if (needRoot) {
@@ -124,7 +129,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
     public List<SysMenuListVO> listMenuList(SysMenuQuery query) {
         // 查询所有未删除的菜单，按显示顺序升序
         List<SysMenu> allMenuList = lambdaQuery()
-                .eq(SysMenu::getDelFlag, "0")
+                .eq(SysMenu::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .orderByAsc(SysMenu::getMenuSort)
                 .list();
 
@@ -259,7 +264,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         // 校验是否存在子菜单
         long childCount = lambdaQuery()
                 .eq(SysMenu::getParentId, menuId)
-                .eq(SysMenu::getDelFlag, "0")
+                .eq(SysMenu::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .count();
         if (childCount > 0) {
             throw new BusinessException("存在下级菜单，不允许删除");
@@ -267,7 +272,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         // 逻辑删除
         SysMenu update = new SysMenu();
         update.setMenuId(menuId);
-        update.setDelFlag("1");
+        update.setDelFlag(DeleteFlagEnum.DELETED.getCode());
         update.setUpdateTime(new Date());
         updateById(update);
     }
@@ -326,15 +331,15 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         menu.setParentId(parentId);
         // keepAlive 前端为 Integer，转为字符串
         if (dto.getKeepAlive() != null) {
-            menu.setKeepAlive(dto.getKeepAlive() == 1 ? "1" : "0");
+            menu.setKeepAlive(dto.getKeepAlive() == 1 ? MenuCache.CACHE.getCode() : MenuCache.NO_CACHE.getCode());
         }
         if (!StringUtils.hasText(menu.getStatus())) {
-            menu.setStatus("1");
+            menu.setStatus(EnableStatusEnum.ENABLED.getCode());
         }
         if (!StringUtils.hasText(menu.getVisible())) {
-            menu.setVisible("1");
+            menu.setVisible(MenuVisible.VISIBLE.getCode());
         }
-        menu.setDelFlag("0");
+        menu.setDelFlag(DeleteFlagEnum.EXIST.getCode());
         Date now = new Date();
         menu.setCreateTime(now);
         menu.setUpdateTime(now);
@@ -372,7 +377,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         BeanUtils.copyProperties(dto, menu);
         menu.setParentId(parentId);
         if (dto.getKeepAlive() != null) {
-            menu.setKeepAlive(dto.getKeepAlive() == 1 ? "1" : "0");
+            menu.setKeepAlive(dto.getKeepAlive() == 1 ? MenuCache.CACHE.getCode() : MenuCache.NO_CACHE.getCode());
         }
         menu.setUpdateTime(new Date());
         updateById(menu);
@@ -385,7 +390,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
      * @param menuType 子菜单类型
      */
     private void validateParentType(Long parentId, String menuType) {
-        if (!"M".equals(menuType) && !"C".equals(menuType) && !"F".equals(menuType)) {
+        if (!MenuType.isValid(menuType)) {
             throw new BusinessException("菜单类型不正确");
         }
         String parentType = null;
@@ -396,14 +401,14 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
             }
             parentType = parent.getMenuType();
         }
-        if ("F".equals(menuType)) {
+        if (MenuType.BUTTON.getCode().equals(menuType)) {
             // 按钮只能挂在菜单(C)下
-            if (!"C".equals(parentType)) {
+            if (!MenuType.MENU.getCode().equals(parentType)) {
                 throw new BusinessException("按钮只能添加在【菜单】类型的节点下");
             }
         } else {
             // 目录(M)、菜单(C)只能挂在根节点或目录(M)下
-            if (parentType != null && !"M".equals(parentType)) {
+            if (parentType != null && !MenuType.DIRECTORY.getCode().equals(parentType)) {
                 throw new BusinessException("目录或菜单只能添加在根节点或【目录】类型的节点下");
             }
         }
@@ -415,22 +420,22 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
     private void validateChildrenType(Long menuId, String newType) {
         List<SysMenu> children = lambdaQuery()
                 .eq(SysMenu::getParentId, menuId)
-                .eq(SysMenu::getDelFlag, "0")
+                .eq(SysMenu::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .list();
         if (children.isEmpty()) {
             return;
         }
-        if ("F".equals(newType)) {
+        if (MenuType.BUTTON.getCode().equals(newType)) {
             throw new BusinessException("当前菜单存在子节点，不允许修改为【按钮】类型");
         }
-        if ("C".equals(newType)) {
-            boolean hasInvalid = children.stream().anyMatch(c -> !"F".equals(c.getMenuType()));
+        if (MenuType.MENU.getCode().equals(newType)) {
+            boolean hasInvalid = children.stream().anyMatch(c -> !MenuType.BUTTON.getCode().equals(c.getMenuType()));
             if (hasInvalid) {
                 throw new BusinessException("当前菜单存在非【按钮】子节点，不允许修改为【菜单】类型");
             }
         }
-        if ("M".equals(newType)) {
-            boolean hasInvalid = children.stream().anyMatch(c -> "F".equals(c.getMenuType()));
+        if (MenuType.DIRECTORY.getCode().equals(newType)) {
+            boolean hasInvalid = children.stream().anyMatch(c -> MenuType.BUTTON.getCode().equals(c.getMenuType()));
             if (hasInvalid) {
                 throw new BusinessException("当前菜单存在【按钮】子节点，不允许修改为【目录】类型");
             }
@@ -462,7 +467,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
             return true;
         }
         Map<Long, Long> parentMap = lambdaQuery()
-                .eq(SysMenu::getDelFlag, "0")
+                .eq(SysMenu::getDelFlag, DeleteFlagEnum.EXIST.getCode())
                 .list().stream()
                 .collect(Collectors.toMap(SysMenu::getMenuId, SysMenu::getParentId, (a, b) -> a));
         Long current = parentMap.get(parentId);

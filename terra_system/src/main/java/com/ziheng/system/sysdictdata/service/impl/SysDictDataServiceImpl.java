@@ -7,6 +7,8 @@ import com.ziheng.common.exception.BusinessException;
 import com.ziheng.framework.cache.CacheKey;
 import com.ziheng.framework.cache.RedisCacheService;
 import com.ziheng.system.sysdictdata.domain.SysDictData;
+import com.ziheng.system.sysdictdata.domain.enums.DictDefault;
+import com.ziheng.system.sysdictdata.domain.enums.DictStatus;
 import com.ziheng.system.sysdictdata.domain.dto.SysDictDataAddDTO;
 import com.ziheng.system.sysdictdata.domain.vo.SysDictDataEditVO;
 import com.ziheng.system.sysdictdata.domain.vo.SysDictDataListVO;
@@ -73,11 +75,11 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
         BeanUtils.copyProperties(dto, data);
         // 是否默认：为空默认 N
         if (!StringUtils.hasText(data.getIsDefault())) {
-            data.setIsDefault("N");
+            data.setIsDefault(DictDefault.NO.getCode());
         }
         // 状态为空默认启用(0正常)
         if (!StringUtils.hasText(data.getStatus())) {
-            data.setStatus("0");
+            data.setStatus(DictStatus.NORMAL.getCode());
         }
         Date now = new Date();
         data.setCreateTime(now);
@@ -144,7 +146,7 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
         // 仅返回启用的字典值（停用的值不展示到页面）
         List<SysDictOptionVO> result = lambdaQuery()
                 .eq(SysDictData::getDictId, dictTypeRow.getDictId())
-                .eq(SysDictData::getStatus, "1")
+                .eq(SysDictData::getStatus, DictStatus.NORMAL.getCode())
                 .orderByAsc(SysDictData::getDictSort)
                 .orderByAsc(SysDictData::getDictCode)
                 .list()
