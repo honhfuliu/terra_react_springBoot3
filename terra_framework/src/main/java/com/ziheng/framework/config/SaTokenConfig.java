@@ -25,7 +25,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                             "/excel/**",
                             "/test/**",
                             "/druid/**",
-                            "/upload/image/**"
+                            "/upload/image/**",
+                            "/ai/**"
                     )
                     .check(r -> StpUtil.checkLogin());
         })).addPathPatterns("/**");

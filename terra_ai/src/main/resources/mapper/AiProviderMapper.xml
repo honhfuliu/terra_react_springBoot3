@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ziheng.ai.infrastructure.provider.mapper.AiProviderMapper">
+
+    <resultMap id="BaseResultMap" type="com.ziheng.ai.infrastructure.provider.domain.AiProvider">
+            <id property="id" column="id" />
+            <result property="providerCode" column="provider_code" />
+            <result property="providerName" column="provider_name" />
+            <result property="apiBaseUrl" column="api_base_url" />
+            <result property="apiKey" column="api_key" />
+            <result property="protocol" column="protocol" />
+            <result property="enabled" column="enabled" />
+            <result property="isDefault" column="is_default" />
+            <result property="remark" column="remark" />
+            <result property="createBy" column="create_by" />
+            <result property="createTime" column="create_time" />
+            <result property="updateBy" column="update_by" />
+            <result property="updateTime" column="update_time" />
+            <result property="delFlag" column="del_flag" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,provider_code,provider_name,api_base_url,api_key,protocol,
+        enabled,is_default,remark,create_by,create_time,
+        update_by,update_time,del_flag
+    </sql>
+</mapper>

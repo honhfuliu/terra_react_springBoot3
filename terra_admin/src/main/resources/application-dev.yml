@@ -49,6 +49,15 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
+  ai:
+    openai:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: qwen3.8-27b
+          temperature: 0.7
+
 
 # 监控配置
 monitor:
@@ -73,6 +82,17 @@ terra:
     # 是否开启图形验证码：本地联调、接口压测时可临时改为 false，
     # 关闭后登录接口不再校验验证码，前端也会隐藏验证码输入框
     enabled: false
+  ai:
+    # 默认模型供应商
+    default-provider: dashscope
+
+    # Chat 对话配置
+    chat:
+      enabled: true
+
+    # Embedding 向量模型配置
+    embedding:
+      enabled: false
 
 # 文件上传配置
 file:

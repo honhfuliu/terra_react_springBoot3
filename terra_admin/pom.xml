@@ -18,6 +18,12 @@
     </properties>
 
     <dependencies>
+        <!-- ==================== AI ==================== -->
+        <dependency>
+            <groupId>com.ziheng</groupId>
+            <artifactId>terra_ai</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- ==================== System ==================== -->
         <dependency>
             <groupId>com.ziheng</groupId>
