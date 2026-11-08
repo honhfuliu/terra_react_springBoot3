@@ -11,7 +11,8 @@ public enum OperateModule {
     DICT("DICT", "字典管理"),
     LOGIN("LOGIN", "登录日志"),
     ANNOUNCEMENT("ANNOUNCEMENT", "公告管理"),
-    OPERATION_LOG("OPERATION_LOG", "操作日志");
+    OPERATION_LOG("OPERATION_LOG", "操作日志"),
+    AI_PROVIDER("AI_PROVIDER", "AI模型提供商管理");
 
     private final String code;
     private final String name;

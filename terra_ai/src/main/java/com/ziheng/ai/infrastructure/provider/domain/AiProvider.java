@@ -47,12 +47,12 @@ public class AiProvider {
     /**
      * 是否启用 0否 1是
      */
-    private Integer enabled;
+    private String enabled;
 
     /**
      * 是否默认 0否 1是
      */
-    private Integer isDefault;
+    private String isDefault;
 
     /**
      * 备注
@@ -79,11 +79,6 @@ public class AiProvider {
      */
     private Date updateTime;
 
-    /**
-     * 删除标志 0存在 1删除
-     */
-    private Integer delFlag;
-
     @Override
     public boolean equals(Object that) {
         if (this == that) {
@@ -108,8 +103,7 @@ public class AiProvider {
             && (this.getCreateBy() == null ? other.getCreateBy() == null : this.getCreateBy().equals(other.getCreateBy()))
             && (this.getCreateTime() == null ? other.getCreateTime() == null : this.getCreateTime().equals(other.getCreateTime()))
             && (this.getUpdateBy() == null ? other.getUpdateBy() == null : this.getUpdateBy().equals(other.getUpdateBy()))
-            && (this.getUpdateTime() == null ? other.getUpdateTime() == null : this.getUpdateTime().equals(other.getUpdateTime()))
-            && (this.getDelFlag() == null ? other.getDelFlag() == null : this.getDelFlag().equals(other.getDelFlag()));
+            && (this.getUpdateTime() == null ? other.getUpdateTime() == null : this.getUpdateTime().equals(other.getUpdateTime()));
     }
 
     @Override
@@ -129,7 +123,6 @@ public class AiProvider {
         result = prime * result + ((getCreateTime() == null) ? 0 : getCreateTime().hashCode());
         result = prime * result + ((getUpdateBy() == null) ? 0 : getUpdateBy().hashCode());
         result = prime * result + ((getUpdateTime() == null) ? 0 : getUpdateTime().hashCode());
-        result = prime * result + ((getDelFlag() == null) ? 0 : getDelFlag().hashCode());
         return result;
     }
 
@@ -152,7 +145,6 @@ public class AiProvider {
         sb.append(", createTime=").append(createTime);
         sb.append(", updateBy=").append(updateBy);
         sb.append(", updateTime=").append(updateTime);
-        sb.append(", delFlag=").append(delFlag);
         sb.append("]");
         return sb.toString();
     }

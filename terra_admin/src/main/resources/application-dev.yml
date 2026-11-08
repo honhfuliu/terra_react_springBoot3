@@ -83,16 +83,17 @@ terra:
     # 关闭后登录接口不再校验验证码，前端也会隐藏验证码输入框
     enabled: false
   ai:
+    security:
+      encryption-key: ${AI_ENCRYPTION_KEY}
     # 默认模型供应商
     default-provider: dashscope
-
     # Chat 对话配置
     chat:
       enabled: true
-
     # Embedding 向量模型配置
     embedding:
       enabled: false
+
 
 # 文件上传配置
 file:

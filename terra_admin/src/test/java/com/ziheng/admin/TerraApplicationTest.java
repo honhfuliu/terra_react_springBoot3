@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.ziheng.ai.infrastructure.security.AiApiKeyEncryptor;
 import com.ziheng.system.auth.service.AuthService;
 //import com.ziheng.system.sysmenu.domain.vo.SysMenuVO;
 import com.ziheng.system.sysmenu.domain.SysMenu;
@@ -20,6 +21,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
 
+import javax.crypto.KeyGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.function.Function;
@@ -42,6 +45,17 @@ class TerraApplicationTest {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+    @Autowired
+    private AiApiKeyEncryptor aiApiKeyEncryptor;
+
+    @Test
+    void test00() throws NoSuchAlgorithmException {
+        String encrypted = aiApiKeyEncryptor.encrypt("123456");
+        System.out.println(encrypted);
+
+        String decrypted = aiApiKeyEncryptor.decrypt(encrypted);
+        System.out.println(decrypted);
+    }
     @Test
     void test000(){
         stringRedisTemplate.opsForValue().set("terra:test", "hello redis");
