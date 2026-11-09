@@ -2,19 +2,20 @@ package com.ziheng.ai.capability.chat.service.impl;
 
 import com.ziheng.ai.capability.chat.service.AiChatService;
 import com.ziheng.ai.config.AiProperties;
-import com.ziheng.ai.infrastructure.client.chat.AiChatClient;
+import com.ziheng.ai.infrastructure.client.factory.AiChatClientFactory;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AiChatServiceImpl implements AiChatService {
 
-    private final AiChatClient aiChatClient;
+    private final AiChatClientFactory aiChatClientFactory;
 
     private final AiProperties aiProperties;
 
-    public AiChatServiceImpl(AiChatClient aiChatClient, AiProperties aiProperties) {
-        this.aiChatClient = aiChatClient;
+    public AiChatServiceImpl(AiProperties aiProperties, AiChatClientFactory aiChatClientFactory) {
         this.aiProperties = aiProperties;
+        this.aiChatClientFactory = aiChatClientFactory;
     }
 
     @Override
@@ -23,7 +24,8 @@ public class AiChatServiceImpl implements AiChatService {
         if (!aiProperties.getChat().isEnabled()) {
             throw new IllegalStateException("AI 对话功能已关闭");
         }
+        ChatClient chatClient = aiChatClientFactory.create();
         // 调用底层 AI 客户端
-        return aiChatClient.chat(message);
+        return chatClient.prompt().user(message).call().content();
     }
 }

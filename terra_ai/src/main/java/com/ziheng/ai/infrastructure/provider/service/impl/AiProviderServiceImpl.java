@@ -3,9 +3,12 @@ package com.ziheng.ai.infrastructure.provider.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ziheng.ai.infrastructure.model.domain.AiModel;
+import com.ziheng.ai.infrastructure.model.mapper.AiModelMapper;
 import com.ziheng.ai.infrastructure.provider.domain.AiProvider;
 import com.ziheng.ai.infrastructure.provider.domain.dto.AiProviderQuery;
 import com.ziheng.ai.infrastructure.provider.domain.dto.AiProviderSaveDTO;
+import com.ziheng.ai.infrastructure.provider.domain.vo.AiProviderOptionVO;
 import com.ziheng.ai.infrastructure.provider.domain.vo.AiProviderVO;
 import com.ziheng.ai.infrastructure.provider.mapper.AiProviderMapper;
 import com.ziheng.ai.infrastructure.provider.service.AiProviderService;
@@ -31,8 +34,11 @@ public class AiProviderServiceImpl extends ServiceImpl<AiProviderMapper, AiProvi
 
     private final AiApiKeyEncryptor aiApiKeyEncryptor;
 
-    public AiProviderServiceImpl(AiApiKeyEncryptor aiApiKeyEncryptor) {
+    private final AiModelMapper aiModelMapper;
+
+    public AiProviderServiceImpl(AiApiKeyEncryptor aiApiKeyEncryptor, AiModelMapper aiModelMapper) {
         this.aiApiKeyEncryptor = aiApiKeyEncryptor;
+        this.aiModelMapper = aiModelMapper;
     }
 
     @Override
@@ -57,6 +63,22 @@ public class AiProviderServiceImpl extends ServiceImpl<AiProviderMapper, AiProvi
             rows.add(vo);
         }
         return PageResult.of(result.getTotal(), rows);
+    }
+
+    @Override
+    public List<AiProviderOptionVO> listOptions() {
+        List<AiProvider> providers = lambdaQuery()
+                .select(AiProvider::getId, AiProvider::getProviderName)
+                .orderByAsc(AiProvider::getId)
+                .list();
+        List<AiProviderOptionVO> options = new ArrayList<>(providers.size());
+        for (AiProvider item : providers) {
+            AiProviderOptionVO option = new AiProviderOptionVO();
+            option.setId(item.getId());
+            option.setProviderName(item.getProviderName());
+            options.add(option);
+        }
+        return options;
     }
 
     /**
@@ -105,9 +127,6 @@ public class AiProviderServiceImpl extends ServiceImpl<AiProviderMapper, AiProvi
         BeanUtils.copyProperties(dto, provider);
         // API Key 加密后入库
         provider.setApiKey(aiApiKeyEncryptor.encrypt(dto.getApiKey()));
-        if (StringUtils.hasText(provider.getEnabled())) {
-            provider.setEnabled("0");
-        }
         save(provider);
         return provider.getId();
     }
@@ -173,6 +192,11 @@ public class AiProviderServiceImpl extends ServiceImpl<AiProviderMapper, AiProvi
         if (getById(id) == null) {
             throw new BusinessException("提供商不存在");
         }
+        // 删除供应商下的所有模型
+        LambdaQueryWrapper<AiModel> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AiModel::getProviderId, id);
+        aiModelMapper.delete(wrapper);
+
         removeById(id);
     }
 

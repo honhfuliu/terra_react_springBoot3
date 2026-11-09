@@ -3,9 +3,12 @@ package com.ziheng.ai.infrastructure.provider.service;
 import com.ziheng.ai.infrastructure.provider.domain.AiProvider;
 import com.ziheng.ai.infrastructure.provider.domain.dto.AiProviderQuery;
 import com.ziheng.ai.infrastructure.provider.domain.dto.AiProviderSaveDTO;
+import com.ziheng.ai.infrastructure.provider.domain.vo.AiProviderOptionVO;
 import com.ziheng.ai.infrastructure.provider.domain.vo.AiProviderVO;
 import com.ziheng.common.core.domain.PageResult;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
 * @author Administrator
@@ -21,6 +24,13 @@ public interface AiProviderService extends IService<AiProvider> {
      * @return 分页结果
      */
     PageResult<AiProviderVO> page(AiProviderQuery query);
+
+    /**
+     * 查询所有提供商下拉选项（仅id和名称）
+     *
+     * @return 下拉选项列表
+     */
+    List<AiProviderOptionVO> listOptions();
 
 
     /**

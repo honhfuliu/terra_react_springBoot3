@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaMode;
 import com.ziheng.ai.infrastructure.provider.domain.dto.AiProviderQuery;
 import com.ziheng.ai.infrastructure.provider.domain.dto.AiProviderSaveDTO;
+import com.ziheng.ai.infrastructure.provider.domain.vo.AiProviderOptionVO;
 import com.ziheng.ai.infrastructure.provider.domain.vo.AiProviderVO;
 import com.ziheng.ai.infrastructure.provider.service.AiProviderService;
 import com.ziheng.common.core.domain.PageResult;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * AI模型提供商管理
@@ -45,6 +48,15 @@ public class AiProviderController {
     @SaCheckPermission("ai:provider:list")
     public R<PageResult<AiProviderVO>> page(AiProviderQuery query) {
         return R.ok(aiProviderService.page(query));
+    }
+
+    /**
+     * 提供商下拉选项（仅id和名称）
+     */
+    @GetMapping("/options")
+    @Operation(summary = "查询所有提供商下拉选项")
+    public R<List<AiProviderOptionVO>> options() {
+        return R.ok(aiProviderService.listOptions());
     }
 
     /**

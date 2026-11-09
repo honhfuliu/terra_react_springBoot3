@@ -1,6 +1,6 @@
 package com.ziheng.ai.infrastructure.options;
 
-import cn.dev33.satoken.annotation.SaCheckLogin;
+import com.ziheng.ai.common.enums.AiModelType;
 import com.ziheng.ai.common.enums.AiProtocolType;
 import com.ziheng.common.core.domain.R;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +28,18 @@ public class AiOptionsController {
                         "value", item.getCode()
                 ))
                 .toList();
+        return R.ok(options);
+    }
+
+    @GetMapping("/model-types")
+    public R<List<Map<String, String>>> getModelTypes() {
+        List<Map<String, String>> options = Arrays.stream(AiModelType.values())
+                .map(item -> Map.of(
+                        "dictLabel", item.getDescription(),
+                        "dictValue", item.getCode()
+                ))
+                .toList();
+
         return R.ok(options);
     }
 }
