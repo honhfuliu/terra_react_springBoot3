@@ -25,7 +25,7 @@
         <druid.version>1.2.28</druid.version>
         <mysql.version>8.0.31</mysql.version>
         <knife4j.version>4.4.0</knife4j.version>
-        <sa-token.version>1.45.0</sa-token.version>
+        <sa-token.version>1.46.0</sa-token.version>
         <commons-pool2.version>2.11.1</commons-pool2.version>
         <hutool.version>5.8.38</hutool.version>
         <lombok.version>1.18.26</lombok.version>

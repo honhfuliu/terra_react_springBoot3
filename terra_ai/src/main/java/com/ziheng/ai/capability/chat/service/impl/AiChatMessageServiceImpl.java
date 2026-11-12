@@ -21,6 +21,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -50,6 +51,7 @@ public class AiChatMessageServiceImpl extends ServiceImpl<AiChatMessageMapper, A
         chatMessage.setSessionId(sessionId);
         chatMessage.setRole("USER");
         chatMessage.setContent(message);
+        chatMessage.setCreateTime(new Date());
         baseMapper.insert(chatMessage);
         return chatMessage;
     }
@@ -74,6 +76,7 @@ public class AiChatMessageServiceImpl extends ServiceImpl<AiChatMessageMapper, A
         // 提供商快照
         chatMessage.setProviderId(provider.getId());
         chatMessage.setProviderName(provider.getProviderName());
+        chatMessage.setCreateTime(new Date());
         baseMapper.insert(chatMessage);
         return chatMessage;
     }

@@ -117,34 +117,25 @@ public class AiChatServiceImpl implements AiChatService {
             }
             // 获取当前登录用户
             Long userId = StpUtil.getLoginIdAsLong();
-
             // 创建 AI 聊天上下文
             AiChatContext aiChatContext = aiChatClientFactory.create(dto.getModelId());
-
             // 创建或校验会话
             AiChatSession session = aiChatSessionService.getOrCreateSession(dto.getSessionId(), userId, dto.getMessage());
-
             // 保存用户消息
             AiChatMessage userMessage = aiChatMessageService.saveUserMessage(session.getId(), dto.getMessage());
-
             // 加载历史对话上下文
             List<Message> messages = aiChatMessageService.loadConversationContext(session.getId());
-
             // 构建开始事件
             AiChatStreamStartVO startVO = new AiChatStreamStartVO(session.getId(), session.getTitle(), AiChatMessageVO.from(userMessage));
-
             // 累计 AI 完整回复
             StringBuilder answer = new StringBuilder();
-
             // 构建开始事件
             AiChatStreamEvent startEvent = new AiChatStreamEvent("start", startVO);
-
             // 调用模型并转换为 chunk 事件
             Flux<AiChatStreamEvent> chunkFlux = aiChatClient.streamChat(aiChatContext.getChatClient(), messages)
                     .doOnNext(answer::append) // 累计 AI 完整回复
                     .map(chunk -> new AiChatStreamEvent("chunk", chunk));
             // 先发送 start，再发送 chunk
-
             // 模型生成完成后，保存 AI 回复并发送 complete 事件
             Flux<AiChatStreamEvent> completeFlux = chunkFlux.concatWith(Mono.fromCallable(() -> {
                 // 获取完整 AI 回复
