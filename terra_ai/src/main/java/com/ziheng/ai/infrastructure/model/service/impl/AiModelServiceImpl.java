@@ -1,11 +1,14 @@
 package com.ziheng.ai.infrastructure.model.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ziheng.ai.infrastructure.client.context.AiModelContext;
 import com.ziheng.ai.infrastructure.model.domain.AiModel;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelQuery;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelSaveDTO;
+import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelVO;
 import com.ziheng.ai.infrastructure.model.mapper.AiModelMapper;
 import com.ziheng.ai.infrastructure.model.service.AiModelService;
@@ -96,14 +99,45 @@ public class AiModelServiceImpl extends ServiceImpl<AiModelMapper, AiModel>
         removeById(id);
     }
 
+
+
     /**
-     * 获取可用的模型
+     * 获取可用的模型上下文
      * @param modelType 模型类型
-     * @return 模型
+     * @param modelId 模型ID
+     * @return 模型上下文
      */
     @Override
-    public AiModel getAvailableModel(String modelType) {
+    public AiModelContext getAvailableModelContext(String modelType, Long modelId) {
         // 查询指定类型下所有已启用模型
+        LambdaQueryChainWrapper<AiModel> query = lambdaQuery()
+                .eq(AiModel::getModelType, modelType)
+                .eq(AiModel::getEnabled, EnableStatusEnum.ENABLED.getCode());
+        if (modelId != null) {
+            query.eq(AiModel::getId, modelId);
+        } else {
+            query.orderByDesc(AiModel::getIsDefault)
+                    .orderByAsc(AiModel::getId);
+        }
+
+        List<AiModel> models = query.list();
+
+        // 按优先级依次检查模型所属提供商
+        for (AiModel model : models) {
+            AiProvider provider = aiProviderService.getById(model.getProviderId());
+            // 提供商存在并且已启用，才认为模型可用
+            if (provider != null && EnableStatusEnum.ENABLED.getCode().equals(provider.getEnabled())) {
+                return new AiModelContext(model, provider);
+            }
+        }
+        if (modelId != null) {
+            throw new BusinessException("指定的 AI 模型不存在、已禁用或所属提供商不可用");
+        }
+        throw new BusinessException("当前没有可用的" + modelType + "模型");
+    }
+
+    @Override
+    public List<AiModelOptionVO> listAvailableModels(String modelType) {
         List<AiModel> models = lambdaQuery()
                 .eq(AiModel::getModelType, modelType)
                 .eq(AiModel::getEnabled, EnableStatusEnum.ENABLED.getCode())
@@ -111,15 +145,34 @@ public class AiModelServiceImpl extends ServiceImpl<AiModelMapper, AiModel>
                 .orderByAsc(AiModel::getId)
                 .list();
 
-        // 按优先级依次检查模型所属提供商
+        // 批量查询所属提供商，避免逐条查询
+        List<Long> providerIds = new ArrayList<>();
         for (AiModel model : models) {
-            AiProvider provider = aiProviderService.getById(model.getProviderId());
-            // 提供商存在并且已启用，才认为模型可用
-            if (provider != null && EnableStatusEnum.ENABLED.getCode().equals(provider.getEnabled())) {
-                return model;
+            if (model.getProviderId() != null && !providerIds.contains(model.getProviderId())) {
+                providerIds.add(model.getProviderId());
             }
         }
-        throw new BusinessException("当前没有可用的" + modelType + "模型");
+        Map<Long, AiProvider> providerMap = new HashMap<>();
+        if (!providerIds.isEmpty()) {
+            List<AiProvider> providers = aiProviderService.listByIds(providerIds);
+            for (AiProvider provider : providers) {
+                providerMap.put(provider.getId(), provider);
+            }
+        }
+
+        List<AiModelOptionVO> options = new ArrayList<>();
+        for (AiModel model : models) {
+            AiProvider provider = providerMap.get(model.getProviderId());
+            // 提供商存在且已启用，模型才算可用
+            if (provider == null || !EnableStatusEnum.ENABLED.getCode().equals(provider.getEnabled())) {
+                continue;
+            }
+            AiModelOptionVO option = new AiModelOptionVO();
+            option.setId(model.getId());
+            option.setModelCode(model.getModelCode());
+            options.add(option);
+        }
+        return options;
     }
 
     @Override

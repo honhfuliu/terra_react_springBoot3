@@ -1,11 +1,15 @@
 package com.ziheng.ai.infrastructure.model.service;
 
+import com.ziheng.ai.infrastructure.client.context.AiModelContext;
 import com.ziheng.ai.infrastructure.model.domain.AiModel;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelQuery;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelSaveDTO;
+import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelVO;
 import com.ziheng.common.core.domain.PageResult;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
 * @author Administrator
@@ -37,14 +41,21 @@ public interface AiModelService extends IService<AiModel> {
      */
     void delete(Long id);
 
-
-
     /**
-     * 根据模型类型获取当前可用模型
+     * 根据模型类型和模型ID获取可用模型上下文
      *
      * @param modelType 模型类型 CHAT、EMBEDDING、RERANK
-     * @return 可用模型
+     * @param modelId   模型ID
+     * @return 可用模型上下文
      */
-    AiModel getAvailableModel(String modelType);
+    AiModelContext getAvailableModelContext(String modelType, Long modelId);
+
+    /**
+     * 查询指定类型下所有可用模型（仅id和模型编码）
+     *
+     * @param modelType 模型类型 CHAT、EMBEDDING、RERANK
+     * @return 可用模型选项列表
+     */
+    List<AiModelOptionVO> listAvailableModels(String modelType);
 
 }

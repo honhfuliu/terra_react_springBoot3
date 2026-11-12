@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ziheng.ai.infrastructure.model.mapper.AiModelMapper">
+
+    <resultMap id="BaseResultMap" type="com.ziheng.ai.infrastructure.model.domain.AiModel">
+            <id property="id" column="id" />
+            <result property="providerId" column="provider_id" />
+            <result property="modelCode" column="model_code" />
+            <result property="modelName" column="model_name" />
+            <result property="modelType" column="model_type" />
+            <result property="enabled" column="enabled" />
+            <result property="isDefault" column="is_default" />
+            <result property="temperature" column="temperature" />
+            <result property="maxTokens" column="max_tokens" />
+            <result property="contextWindow" column="context_window" />
+            <result property="remark" column="remark" />
+            <result property="createBy" column="create_by" />
+            <result property="createTime" column="create_time" />
+            <result property="updateBy" column="update_by" />
+            <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,provider_id,model_code,model_name,model_type,enabled,
+        is_default,temperature,max_tokens,context_window,remark,
+        create_by,create_time,update_by,update_time
+    </sql>
+</mapper>
