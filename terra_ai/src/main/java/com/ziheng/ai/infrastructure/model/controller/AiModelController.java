@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.annotation.SaMode;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelQuery;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelSaveDTO;
+import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelVO;
 import com.ziheng.ai.infrastructure.model.service.AiModelService;
 import com.ziheng.common.core.domain.PageResult;
@@ -20,7 +21,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/ai/model")
@@ -40,6 +44,15 @@ public class AiModelController {
     @Operation(summary = "分页查询模型")
     public R<PageResult<AiModelVO>> page(AiModelQuery query) {
         return R.ok(aiModelService.page(query));
+    }
+
+    /**
+     * 查询可用模型列表（不传modelType时查询所有类型的可用模型）
+     */
+    @GetMapping("/options")
+    @Operation(summary = "查询可用模型列表")
+    public R<List<AiModelOptionVO>> options(@RequestParam(name = "modelType", required = false) String modelType) {
+        return R.ok(aiModelService.listAvailableModels(modelType));
     }
 
     /**

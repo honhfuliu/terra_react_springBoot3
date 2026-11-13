@@ -33,9 +33,10 @@ public interface AiChatMessageService extends IService<AiChatMessage> {
       * @param content 消息内容
       * @param model 模型
       * @param provider 提供商
+      * @param totalTokens 总令牌数
       * @return 消息实体
       */
-    AiChatMessage saveAssistantMessage(Long sessionId, String content, AiModel model, AiProvider provider);
+    AiChatMessage saveAssistantMessage(Long sessionId, String content, AiModel model, AiProvider provider, Integer totalTokens);
 
     /**
      * 加载会话上下文

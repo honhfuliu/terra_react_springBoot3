@@ -64,11 +64,12 @@ public class AiChatMessageServiceImpl extends ServiceImpl<AiChatMessageMapper, A
      * @return 消息实体
      */
     @Override
-    public AiChatMessage saveAssistantMessage(Long sessionId, String content, AiModel model, AiProvider provider) {
+    public AiChatMessage saveAssistantMessage(Long sessionId, String content, AiModel model, AiProvider provider, Integer totalTokens) {
         AiChatMessage chatMessage = new AiChatMessage();
         chatMessage.setSessionId(sessionId);
         chatMessage.setRole("ASSISTANT");
         chatMessage.setContent(content);
+        chatMessage.setTokenCount(totalTokens);
         // 模型快照
         chatMessage.setModelId(model.getId());
         chatMessage.setModelCode(model.getModelCode());

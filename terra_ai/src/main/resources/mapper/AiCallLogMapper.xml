@@ -30,4 +30,30 @@
         completion_tokens,total_tokens,duration,error_message,create_time,
         update_time
     </sql>
+
+    <!-- 全局调用统计：总调用次数、Token总消耗、成功/失败次数 -->
+    <select id="selectGlobalStats" resultType="com.ziheng.ai.infrastructure.calllog.domain.vo.AiCallLogStatsVO">
+        SELECT
+            COUNT(*) AS totalCalls,
+            COALESCE(SUM(total_tokens), 0) AS totalTokens,
+            COALESCE(SUM(CASE WHEN status = '1' THEN 1 ELSE 0 END), 0) AS successCalls,
+            COALESCE(SUM(CASE WHEN status = '2' THEN 1 ELSE 0 END), 0) AS failCalls
+        FROM ai_call_log
+    </select>
+
+    <!-- 模型消耗统计：仅成功调用且有有效Token，按总Token降序 -->
+    <select id="selectModelConsumption" resultType="com.ziheng.ai.infrastructure.calllog.domain.vo.AiModelConsumptionVO">
+        SELECT
+            model_name AS modelName,
+            provider_name AS providerName,
+            COALESCE(SUM(total_tokens), 0) AS totalTokens,
+            COUNT(*) AS callCount,
+            COALESCE(SUM(prompt_tokens), 0) AS promptTokens,
+            COALESCE(SUM(completion_tokens), 0) AS completionTokens
+        FROM ai_call_log
+        WHERE status = '1'
+          AND total_tokens IS NOT NULL
+        GROUP BY model_id, model_name, provider_id, provider_name
+        ORDER BY SUM(total_tokens) DESC
+    </select>
 </mapper>

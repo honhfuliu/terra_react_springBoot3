@@ -13,7 +13,10 @@ import com.ziheng.ai.capability.chat.service.AiChatService;
 import com.ziheng.ai.capability.chat.service.AiChatSessionService;
 import com.ziheng.ai.common.enums.AiModelType;
 import com.ziheng.ai.config.AiProperties;
+import com.ziheng.ai.infrastructure.calllog.domain.AiCallLog;
+import com.ziheng.ai.infrastructure.calllog.service.AiCallLogService;
 import com.ziheng.ai.infrastructure.client.chat.AiChatClient;
+import com.ziheng.ai.infrastructure.client.chat.AiChatResponse;
 import com.ziheng.ai.infrastructure.client.context.AiChatContext;
 import com.ziheng.ai.infrastructure.client.factory.AiChatClientFactory;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
@@ -28,6 +31,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class AiChatServiceImpl implements AiChatService {
@@ -42,6 +46,7 @@ public class AiChatServiceImpl implements AiChatService {
     private final AiChatSessionService aiChatSessionService;
     private final AiChatMessageService aiChatMessageService;
     private final AiChatClient aiChatClient;
+    private final AiCallLogService aiCallLogService;
 
     public AiChatServiceImpl(AiProperties aiProperties,
                              AiChatClientFactory aiChatClientFactory,
@@ -49,7 +54,8 @@ public class AiChatServiceImpl implements AiChatService {
                              AiProviderService aiProviderService,
                              AiChatSessionService aiChatSessionService,
                              AiChatMessageService aiChatMessageService,
-                             AiChatClient aiChatClient) {
+                             AiChatClient aiChatClient,
+                             AiCallLogService aiCallLogService) {
         this.aiProperties = aiProperties;
         this.aiChatClientFactory = aiChatClientFactory;
         this.aiModelService = aiModelService;
@@ -57,6 +63,7 @@ public class AiChatServiceImpl implements AiChatService {
         this.aiChatSessionService = aiChatSessionService;
         this.aiChatMessageService = aiChatMessageService;
         this.aiChatClient = aiChatClient;
+        this.aiCallLogService = aiCallLogService;
     }
 
 
@@ -90,16 +97,35 @@ public class AiChatServiceImpl implements AiChatService {
         AiChatSession session = aiChatSessionService.getOrCreateSession(dto.getSessionId(), userId, dto.getMessage());
         // 5. 保存用户消息
         AiChatMessage userMessage = aiChatMessageService.saveUserMessage(session.getId(), dto.getMessage());
-        // 6. 查询历史消息并转换为 Spring AI 消息
-        List<Message> messages = aiChatMessageService.loadConversationContext(session.getId());
-        // 7. 调用 AI 模型
-        String answer = aiChatClient.chat(aiChatContext.getChatClient(), messages);
-        // 9. 保存 AI 回复
-        AiChatMessage assistantMessage = aiChatMessageService.saveAssistantMessage(session.getId(), answer, aiChatContext.getModel(), aiChatContext.getProvider());
-        // 10. 更新会话时间
-        aiChatSessionService.updateSessionTime(session);
-        // 11. 构建并返回结果
-        return new AiChatSendVO(session.getId(), session.getTitle(), AiChatMessageVO.from(userMessage), AiChatMessageVO.from(assistantMessage));
+        //  6. 保存调用日志
+        AiCallLog callLog = new AiCallLog();
+        callLog.setUserId(userId);
+        callLog.setSessionId(session.getId());
+        callLog.setProviderId(aiChatContext.getProvider().getId());
+        callLog.setProviderName(aiChatContext.getProvider().getProviderName());
+        callLog.setModelId(aiChatContext.getModel().getId());
+        callLog.setModelName(aiChatContext.getModel().getModelName());
+        callLog.setCallType(AiModelType.CHAT.getCode());
+        Long logId = aiCallLogService.createCallLog(callLog);
+
+        try {
+            // 7. 查询历史消息并转换为 Spring AI 消息
+            List<Message> messages = aiChatMessageService.loadConversationContext(session.getId());
+            // 8. 调用 AI 模型
+            AiChatResponse chat = aiChatClient.chat(aiChatContext.getChatClient(), messages);
+            // 9. 保存 AI 回复
+            AiChatMessage assistantMessage = aiChatMessageService.saveAssistantMessage(session.getId(), chat.getContent(), aiChatContext.getModel(), aiChatContext.getProvider(),chat.getTotalTokens());
+            // 10. 更新会话时间
+            aiChatSessionService.updateSessionTime(session);
+            // 11. 更新 AI 调用日志
+            aiCallLogService.successCallLog(logId, assistantMessage.getId(), chat.getPromptTokens(), chat.getCompletionTokens(), chat.getTotalTokens());
+            // 12. 构建并返回结果
+            return new AiChatSendVO(session.getId(), session.getTitle(), AiChatMessageVO.from(userMessage), AiChatMessageVO.from(assistantMessage));
+        } catch (Exception e) {
+            aiCallLogService.failCallLog(logId, e.getMessage());
+            throw e;
+
+        }
     }
 
     /**
@@ -123,25 +149,52 @@ public class AiChatServiceImpl implements AiChatService {
             AiChatSession session = aiChatSessionService.getOrCreateSession(dto.getSessionId(), userId, dto.getMessage());
             // 保存用户消息
             AiChatMessage userMessage = aiChatMessageService.saveUserMessage(session.getId(), dto.getMessage());
+
+            // 创建 AI 调用日志
+            AiCallLog callLog = new AiCallLog();
+            callLog.setUserId(userId);
+            callLog.setSessionId(session.getId());
+            callLog.setProviderId(aiChatContext.getProvider().getId());
+            callLog.setProviderName(aiChatContext.getProvider().getProviderName());
+            callLog.setModelId(aiChatContext.getModel().getId());
+            callLog.setModelName(aiChatContext.getModel().getModelName());
+            callLog.setCallType(AiModelType.CHAT.getCode());
+            Long logId = aiCallLogService.createCallLog(callLog);
+
             // 加载历史对话上下文
             List<Message> messages = aiChatMessageService.loadConversationContext(session.getId());
             // 构建开始事件
             AiChatStreamStartVO startVO = new AiChatStreamStartVO(session.getId(), session.getTitle(), AiChatMessageVO.from(userMessage));
             // 累计 AI 完整回复
             StringBuilder answer = new StringBuilder();
+            // 保存 AI 回复消息 ID
+            AtomicReference<Long> messageIdRef = new AtomicReference<>();
+            AtomicReference<AiChatResponse> usageRef = new AtomicReference<>(); // 保存 AI 调用使用情况
             // 构建开始事件
             AiChatStreamEvent startEvent = new AiChatStreamEvent("start", startVO);
+
             // 调用模型并转换为 chunk 事件
             Flux<AiChatStreamEvent> chunkFlux = aiChatClient.streamChat(aiChatContext.getChatClient(), messages)
-                    .doOnNext(answer::append) // 累计 AI 完整回复
-                    .map(chunk -> new AiChatStreamEvent("chunk", chunk));
+                    .doOnNext(response -> {
+                        if (response.getContent() != null) {
+                            answer.append(response.getContent());
+                        }
+                        if (response.getTotalTokens() != null && response.getTotalTokens() > 0){
+                            usageRef.set(response);
+                        }
+                    })
+                    // 只推送有文本内容的 chunk
+                    .filter(response -> response.getContent() != null && !response.getContent().isEmpty())
+                    .map(chunk -> new AiChatStreamEvent("chunk", chunk.getContent()));
             // 先发送 start，再发送 chunk
             // 模型生成完成后，保存 AI 回复并发送 complete 事件
             Flux<AiChatStreamEvent> completeFlux = chunkFlux.concatWith(Mono.fromCallable(() -> {
                 // 获取完整 AI 回复
                 String content = answer.toString();
                 // 保存 AI 回复
-                AiChatMessage assistantMessage = aiChatMessageService.saveAssistantMessage(session.getId(), content, aiChatContext.getModel(), aiChatContext.getProvider());
+                AiChatMessage assistantMessage = aiChatMessageService.saveAssistantMessage(session.getId(), content, aiChatContext.getModel(), aiChatContext.getProvider(), usageRef.get().getTotalTokens());
+                // 保存消息 ID，供调用日志使用
+                messageIdRef.set(assistantMessage.getId());
                 // 更新会话时间
                 aiChatSessionService.updateSessionTime(session);
                 // 转换为消息 VO
@@ -154,7 +207,22 @@ public class AiChatServiceImpl implements AiChatService {
             return Flux.concat(
                     Flux.just(startEvent),
                     completeFlux
-            );
+
+            ).doOnComplete(() -> aiCallLogService.successCallLog(logId, messageIdRef.get(),
+                            usageRef.get().getPromptTokens(),
+                            usageRef.get().getCompletionTokens(),
+                            usageRef.get().getTotalTokens())) // 正常完成
+            // 异常
+            .doOnError(ex -> {
+                log.error("AI 流式聊天发生异常，logId={}", logId, ex);
+
+                aiCallLogService.failCallLog(logId, ex.getMessage());
+            })
+            // 用户取消
+            .doOnCancel(() -> {
+                log.info("AI 流式调用已取消，logId={}", logId);
+                aiCallLogService.cancelCallLog(logId);
+            });
 
         }).onErrorResume(ex -> {
             // 记录服务端异常日志

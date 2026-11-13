@@ -51,11 +51,20 @@ public interface AiModelService extends IService<AiModel> {
     AiModelContext getAvailableModelContext(String modelType, Long modelId);
 
     /**
-     * 查询指定类型下所有可用模型（仅id和模型编码）
+     * 查询可用模型（仅id和模型编码）
      *
-     * @param modelType 模型类型 CHAT、EMBEDDING、RERANK
+     * @param modelType 模型类型 CHAT、EMBEDDING、RERANK；为空（null/空串）时查询所有类型的可用模型
      * @return 可用模型选项列表
      */
     List<AiModelOptionVO> listAvailableModels(String modelType);
+
+    /**
+     * 查询所有可用模型（不区分模型类型，仅id和模型编码）
+     *
+     * @return 可用模型选项列表
+     */
+    default List<AiModelOptionVO> listAvailableModels() {
+        return listAvailableModels(null);
+    }
 
 }

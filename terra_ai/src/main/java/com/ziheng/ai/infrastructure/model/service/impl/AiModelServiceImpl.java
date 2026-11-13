@@ -139,7 +139,8 @@ public class AiModelServiceImpl extends ServiceImpl<AiModelMapper, AiModel>
     @Override
     public List<AiModelOptionVO> listAvailableModels(String modelType) {
         List<AiModel> models = lambdaQuery()
-                .eq(AiModel::getModelType, modelType)
+                // modelType为空时查询所有类型的可用模型
+                .eq(StringUtils.hasText(modelType), AiModel::getModelType, modelType)
                 .eq(AiModel::getEnabled, EnableStatusEnum.ENABLED.getCode())
                 .orderByDesc(AiModel::getIsDefault)
                 .orderByAsc(AiModel::getId)

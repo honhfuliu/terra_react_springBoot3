@@ -16,12 +16,12 @@ public interface AiChatClient {
     /**
      * 普通文本对话
      */
-    String chat(ChatClient chatClient, List<Message> messages);
+    AiChatResponse  chat(ChatClient chatClient, List<Message> messages);
 
     /**
      * 流式文本对话
      */
-    Flux<String> streamChat(ChatClient chatClient, List<Message> messages);
+    Flux<AiChatResponse> streamChat(ChatClient chatClient, List<Message> messages);
 
 
 }

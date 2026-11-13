@@ -72,7 +72,9 @@ public class AiChatClientFactory {
                 .build();
 
         // 配置模型参数
-        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder().model(model.getModelCode());
+        OpenAiChatOptions.Builder optionsBuilder = OpenAiChatOptions.builder()
+                .model(model.getModelCode())
+                .streamUsage(true);
 
         if (model.getTemperature() != null) {
             optionsBuilder.temperature(model.getTemperature().doubleValue());

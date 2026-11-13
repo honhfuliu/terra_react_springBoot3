@@ -1,5 +1,6 @@
 package com.ziheng.ai.infrastructure.calllog.domain;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
@@ -15,7 +16,7 @@ public class AiCallLog {
     /**
      * 主键ID
      */
-    @TableId
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
@@ -59,7 +60,7 @@ public class AiCallLog {
     private String callType;
 
     /**
-     * 调用状态 0进行中 1成功 2失败 3已取消
+     * 调用状态，取值见 AiCallStatusEnum：0进行中 1成功 2失败 3已取消
      */
     private String status;
 
