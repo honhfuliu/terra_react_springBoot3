@@ -92,7 +92,8 @@ public class AiChatMessageServiceImpl extends ServiceImpl<AiChatMessageMapper, A
         List<AiChatMessage> historyMessages = baseMapper.selectList(
                 new LambdaQueryWrapper<AiChatMessage>()
                         .eq(AiChatMessage::getSessionId, sessionId)
-                        .orderByAsc(AiChatMessage::getId));
+                        .orderByAsc(AiChatMessage::getId)
+                        .last("LIMIT 30"));
         List<Message> messages = new ArrayList<>();
         for (AiChatMessage message : historyMessages) {
             if ("USER".equals(message.getRole())) {

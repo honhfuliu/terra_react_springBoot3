@@ -51,12 +51,9 @@ spring:
     time-zone: GMT+8
   ai:
     openai:
-      base-url: https://dashscope.aliyuncs.com/compatible-mode
-      api-key: ${DASHSCOPE_API_KEY}
-      chat:
-        options:
-          model: qwen3.8-27b
-          temperature: 0.7
+      # 启动占位 Key：用于满足 Spring AI OpenAI 自动配置的非空校验
+      # 实际模型调用使用数据库中配置的 Provider API Key
+      api-key: dummy-key-for-startup
 
 
 # 监控配置

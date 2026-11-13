@@ -22,7 +22,11 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
-
+        <!-- Spring AI Ollama 兼容模型接入 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-ollama</artifactId>
+        </dependency>
         <!-- 公共模块（如果 AI 模块需要使用公共类） -->
         <dependency>
             <groupId>com.ziheng</groupId>
