@@ -3,6 +3,8 @@ package com.ziheng.system.sysmonitor.service.impl;
 import com.alibaba.druid.VERSION;
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.stat.JdbcSqlStat;
+import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
+import com.baomidou.dynamic.datasource.ds.ItemDataSource;
 import com.ziheng.system.sysmonitor.domain.vo.databasemonitor.*;
 import com.ziheng.system.sysmonitor.service.SysDatabaseMonitorService;
 import org.slf4j.Logger;
@@ -10,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
@@ -20,10 +23,30 @@ public class SysDatabaseMonitorServiceImpl implements SysDatabaseMonitorService 
 
     private final DruidDataSource dataSource;
 
-    @Value("${spring.datasource.druid.filter.stat.slow-sql-millis}")
+    @Value("${spring.datasource.dynamic.druid.stat.slow-sql-millis}")
     private long slowSqlMillis;
-    public SysDatabaseMonitorServiceImpl(DruidDataSource dataSource) {
-        this.dataSource = dataSource;
+
+
+    public SysDatabaseMonitorServiceImpl(DynamicRoutingDataSource dynamicRoutingDataSource) {
+
+        // 获取 Dynamic-Datasource 管理的 master 数据源
+        DataSource masterDataSource = dynamicRoutingDataSource.getDataSource("master");
+
+        // 判断是否为 ItemDataSource 包装对象
+        if (!(masterDataSource instanceof ItemDataSource itemDataSource)) {
+            throw new IllegalStateException("master 数据源不是 ItemDataSource");
+        }
+
+        // 获取 ItemDataSource 内部真正的连接池
+        DataSource realDataSource = itemDataSource.getDataSource();
+
+        // 判断底层连接池是否为 Druid
+        if (!(realDataSource instanceof DruidDataSource druidDataSource)) {
+            throw new IllegalStateException("master 底层连接池不是 DruidDataSource，实际类型：" + realDataSource.getClass().getName());
+        }
+
+        this.dataSource = druidDataSource;
+
     }
 
 

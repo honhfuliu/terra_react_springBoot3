@@ -32,6 +32,7 @@
         <oshi.version>6.6.5</oshi.version>
         <!-- Apache POI -->
         <poi.version>5.4.1</poi.version>
+        <dynamic-datasource.version>4.5.0</dynamic-datasource.version>
         <!-- Spring AI -->
         <spring-ai.version>1.1.8</spring-ai.version>
     </properties>
@@ -54,7 +55,7 @@
             <!-- 阿里数据库连接池 -->
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>druid-spring-boot-3-starter</artifactId>
+                <artifactId>druid</artifactId>
                 <version>${druid.version}</version>
             </dependency>
 
@@ -129,6 +130,12 @@
                 <scope>import</scope>
             </dependency>
 
+            <!-- Dynamic-Datasource：Spring Boot 3 -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+                <version>${dynamic-datasource.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
