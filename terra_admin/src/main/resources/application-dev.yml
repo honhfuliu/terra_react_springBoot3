@@ -81,6 +81,7 @@ terra:
     enabled: false
   ai:
     security:
+      # 加密密钥
       encryption-key: ${AI_ENCRYPTION_KEY}
     # 默认模型供应商
     default-provider: dashscope
