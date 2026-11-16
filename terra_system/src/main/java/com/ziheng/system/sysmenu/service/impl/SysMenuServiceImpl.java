@@ -318,7 +318,8 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
     private Long insertMenu(SysMenuAddDTO dto) {
         Long parentId = dto.getParentId() == null ? 0L : dto.getParentId();
         // 校验父节点类型规则
-        validateParentType(parentId, dto.getMenuType());
+        String visible = StringUtils.hasText(dto.getVisible()) ? dto.getVisible() : MenuVisible.VISIBLE.getCode();
+        validateParentType(parentId, dto.getMenuType(), visible);
         // 校验同级菜单名唯一
         checkMenuNameUnique(parentId, dto.getMenuName(), null);
         // 校验父菜单存在
@@ -360,8 +361,9 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
         if (isSelfOrChild(dto.getMenuId(), parentId)) {
             throw new BusinessException("上级菜单不能选择自己或当前菜单的子菜单");
         }
-        // 校验父节点类型规则
-        validateParentType(parentId, dto.getMenuType());
+        // 校验父节点类型规则（visible未传时按原值判断）
+        String visible = StringUtils.hasText(dto.getVisible()) ? dto.getVisible() : oldMenu.getVisible();
+        validateParentType(parentId, dto.getMenuType(), visible);
         // 校验同级菜单名唯一（排除自身）
         checkMenuNameUnique(parentId, dto.getMenuName(), dto.getMenuId());
         // 校验父菜单存在
@@ -385,17 +387,20 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
 
     /**
      * 校验父节点类型与子菜单类型是否匹配
-     * 规则：根节点/目录(M)下可加目录(M)、菜单(C)，不可加按钮(F)；菜单(C)下只可加按钮(F)；按钮(F)下不可加任何子节点
+     * 规则：根节点/目录(M)下可加目录(M)、菜单(C)，不可加按钮(F)；菜单(C)下只可加按钮(F)；按钮(F)下不可加任何子节点；
+     * 隐藏菜单(C)可挂载到显示菜单(C)下
      * @param parentId 父菜单ID
      * @param menuType 子菜单类型
+     * @param visible 子菜单显示状态 0隐藏 1显示
      */
-    private void validateParentType(Long parentId, String menuType) {
+    private void validateParentType(Long parentId, String menuType, String visible) {
         if (!MenuType.isValid(menuType)) {
             throw new BusinessException("菜单类型不正确");
         }
+        SysMenu parent = null;
         String parentType = null;
         if (parentId != null && parentId != 0L) {
-            SysMenu parent = getById(parentId);
+            parent = getById(parentId);
             if (parent == null) {
                 throw new BusinessException("父菜单不存在");
             }
@@ -407,9 +412,16 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu>
                 throw new BusinessException("按钮只能添加在【菜单】类型的节点下");
             }
         } else {
+            // 隐藏菜单(C)允许挂载到显示菜单(C)下
+            boolean hiddenUnderVisibleMenu = parent != null
+                    && MenuType.MENU.getCode().equals(menuType)
+                    && MenuVisible.HIDDEN.getCode().equals(visible)
+                    && MenuType.MENU.getCode().equals(parentType)
+                    && MenuVisible.VISIBLE.getCode().equals(parent.getVisible());
             // 目录(M)、菜单(C)只能挂在根节点或目录(M)下
-            if (parentType != null && !MenuType.DIRECTORY.getCode().equals(parentType)) {
-                throw new BusinessException("目录或菜单只能添加在根节点或【目录】类型的节点下");
+            if (parentType != null && !MenuType.DIRECTORY.getCode().equals(parentType)
+                    && !hiddenUnderVisibleMenu) {
+                throw new BusinessException("目录或菜单只能添加在根节点或【目录】类型的节点下(影藏菜单才能添加到菜单下)");
             }
         }
     }
