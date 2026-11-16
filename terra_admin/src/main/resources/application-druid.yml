@@ -46,6 +46,32 @@ spring:
             testOnBorrow: false
             # 在归还连接到连接池时进行测试
             testOnReturn: false
+        # pgsql
+        vector:
+          type: com.alibaba.druid.pool.DruidDataSource
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://${VECTOR_DB_HOST}:${VECTOR_DB_PORT}/${VECTOR_DB_NAME}
+          username: ${VECTOR_DB_USERNAME}
+          password: ${VECTOR_DB_PASSWORD}
+          druid:
+            # 连接池基本配置
+            initialSize: 2
+            minIdle: 2
+            maxActive: 10
+            maxWait: 60000
+            # 连接超时配置
+            connectTimeout: 30000
+            socketTimeout: 60000
+            # 连接有效性检测
+            validationQuery: SELECT 1
+            testWhileIdle: true
+            testOnBorrow: false
+            testOnReturn: false
+            # 空闲连接回收
+            timeBetweenEvictionRunsMillis: 60000
+            minEvictableIdleTimeMillis: 300000
+            maxEvictableIdleTimeMillis: 900000
+
 
 
 mybatis-plus:

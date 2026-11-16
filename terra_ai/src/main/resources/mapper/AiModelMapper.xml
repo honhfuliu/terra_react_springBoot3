@@ -20,11 +20,14 @@
             <result property="createTime" column="create_time" />
             <result property="updateBy" column="update_by" />
             <result property="updateTime" column="update_time" />
+            <result property="defaultEmbeddingDimension" column="default_embedding_dimension" />
+            <result property="dimensionConfigurable" column="dimension_configurable" />
+            <result property="supportedDimensions" column="supported_dimensions" typeHandler="com.ziheng.ai.infrastructure.model.typehandler.IntegerListJsonTypeHandler"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,provider_id,model_code,model_name,model_type,enabled,
         is_default,temperature,max_tokens,context_window,remark,
-        create_by,create_time,update_by,update_time
+        create_by,create_time,update_by,update_time,default_embedding_dimension,dimension_configurable,supported_dimensions
     </sql>
 </mapper>

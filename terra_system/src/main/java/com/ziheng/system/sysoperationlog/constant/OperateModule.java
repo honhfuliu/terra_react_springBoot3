@@ -13,7 +13,8 @@ public enum OperateModule {
     ANNOUNCEMENT("ANNOUNCEMENT", "公告管理"),
     OPERATION_LOG("OPERATION_LOG", "操作日志"),
     AI_PROVIDER("AI_PROVIDER", "AI模型提供商管理"),
-    AI_MODEL("AI_MODEL", "AI模型管理");
+    AI_MODEL("AI_MODEL", "AI模型管理"),
+    AI_KNOWLEDGE("AI_KNOWLEDGE", "AI知识库管理");
 
     private final String code;
     private final String name;

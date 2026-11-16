@@ -18,6 +18,12 @@
     </properties>
 
     <dependencies>
+        <!-- ==================== PostgreSQL ==================== -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- ==================== AI ==================== -->
         <dependency>
             <groupId>com.ziheng</groupId>

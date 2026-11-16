@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ziheng.ai.infrastructure.vector.mapper.AiDocumentEmbeddingMapper">
+
+    <resultMap id="BaseResultMap" type="com.ziheng.ai.infrastructure.vector.domain.AiDocumentEmbedding">
+            <id property="id" column="id" />
+            <result property="chunkId" column="chunk_id" />
+            <result property="knowledgeId" column="knowledge_id" />
+            <result property="embeddingModelId" column="embedding_model_id" />
+            <result property="embeddingDimension" column="embedding_dimension"/>
+            <result property="embedding" column="embedding"   typeHandler="com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler" />
+            <result property="status" column="status" />
+            <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,chunk_id,knowledge_id,embedding_model_id,embedding_dimension,embedding,status,
+        create_time
+    </sql>
+
+    <resultMap id="AiChunkSearchResultMap" type="com.ziheng.ai.infrastructure.vector.domain.dto.AiChunkSearchResult">
+        <id property="chunkId" column="chunk_id"/>
+        <result property="documentId" column="document_id"/>
+        <result property="chunkIndex" column="chunk_index"/>
+        <result property="content" column="content"/>
+        <result property="metadata" column="metadata" typeHandler="com.ziheng.ai.infrastructure.vector.typehandler.JsonbTypeHandler"/>
+        <result property="distance" column="distance"/>
+    </resultMap>
+    <select id="searchSimilar" resultMap="AiChunkSearchResultMap">
+        SELECT
+            c.id AS chunk_id,
+            c.document_id,
+            c.chunk_index,
+            c.content,
+            c.metadata,
+            e.embedding <![CDATA[ <=> ]]> #{queryVector,typeHandler=com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler} AS distance
+        FROM
+            ai_document_embedding e
+            INNER JOIN
+            ai_document_chunk c
+        ON
+            c.id = e.chunk_id
+        WHERE
+            e.knowledge_id = #{knowledgeId}
+          AND
+            e.embedding_model_id = #{embeddingModelId}
+          AND
+            e.status = 1
+          AND
+            e.embedding IS NOT NULL
+        ORDER BY
+            e.embedding <![CDATA[ <=> ]]> #{queryVector,typeHandler=com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler}
+            LIMIT #{topK}
+    </select>
+
+</mapper>

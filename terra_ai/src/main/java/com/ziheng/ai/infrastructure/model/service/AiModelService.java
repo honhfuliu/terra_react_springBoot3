@@ -5,6 +5,7 @@ import com.ziheng.ai.infrastructure.model.domain.AiModel;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelQuery;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelSaveDTO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
+import com.ziheng.ai.infrastructure.model.domain.vo.AiVectorModelVO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelVO;
 import com.ziheng.common.core.domain.PageResult;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -66,5 +67,12 @@ public interface AiModelService extends IService<AiModel> {
     default List<AiModelOptionVO> listAvailableModels() {
         return listAvailableModels(null);
     }
+
+    /**
+     * 查询所有可用向量模型（EMBEDDING，含供应商名称）
+     *
+     * @return 向量模型列表
+     */
+    List<AiVectorModelVO> listVectorModels();
 
 }

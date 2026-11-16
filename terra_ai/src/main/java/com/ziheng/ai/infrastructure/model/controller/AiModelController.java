@@ -5,6 +5,7 @@ import cn.dev33.satoken.annotation.SaMode;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelQuery;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelSaveDTO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
+import com.ziheng.ai.infrastructure.model.domain.vo.AiVectorModelVO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelVO;
 import com.ziheng.ai.infrastructure.model.service.AiModelService;
 import com.ziheng.common.core.domain.PageResult;
@@ -53,6 +54,15 @@ public class AiModelController {
     @Operation(summary = "查询可用模型列表")
     public R<List<AiModelOptionVO>> options(@RequestParam(name = "modelType", required = false) String modelType) {
         return R.ok(aiModelService.listAvailableModels(modelType));
+    }
+
+    /**
+     * 查询可用向量模型列表（含供应商名称）
+     */
+    @GetMapping("/vector/options")
+    @Operation(summary = "查询可用向量模型列表")
+    public R<List<AiVectorModelVO>> vectorOptions() {
+        return R.ok(aiModelService.listVectorModels());
     }
 
     /**

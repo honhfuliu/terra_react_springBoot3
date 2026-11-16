@@ -3,6 +3,7 @@ package com.ziheng.ai.infrastructure.model.domain.vo;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * AI模型列表视图对象
@@ -49,6 +50,21 @@ public class AiModelVO {
      * 上下文窗口大小
      */
     private Integer contextWindow;
+
+    /**
+     * 默认Embedding维度
+     */
+    private Integer defaultEmbeddingDimension;
+
+    /**
+     * 是否可配置维度 0否 1是
+     */
+    private String dimensionConfigurable;
+
+    /**
+     * 支持的Embedding维度
+     */
+    private List<Integer> supportedDimensions;
 
     /**
      * 状态 0停用 1启用

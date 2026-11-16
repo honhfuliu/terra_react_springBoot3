@@ -1,14 +1,17 @@
 package com.ziheng.ai.infrastructure.model.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ziheng.ai.common.enums.AiModelType;
 import com.ziheng.ai.infrastructure.client.context.AiModelContext;
 import com.ziheng.ai.infrastructure.model.domain.AiModel;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelQuery;
 import com.ziheng.ai.infrastructure.model.domain.dto.AiModelSaveDTO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
+import com.ziheng.ai.infrastructure.model.domain.vo.AiVectorModelVO;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelVO;
 import com.ziheng.ai.infrastructure.model.mapper.AiModelMapper;
 import com.ziheng.ai.infrastructure.model.service.AiModelService;
@@ -22,10 +25,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
 * @author Administrator
@@ -35,6 +40,11 @@ import java.util.Map;
 @Service
 public class AiModelServiceImpl extends ServiceImpl<AiModelMapper, AiModel>
     implements AiModelService{
+
+    /**
+     * 允许的Embedding维度
+     */
+    private static final Set<Integer> ALLOWED_EMBEDDING_DIMENSIONS = Set.of(768, 1024, 1536, 2048, 3072, 4096);
 
     private final AiProviderService aiProviderService;
 
@@ -177,13 +187,122 @@ public class AiModelServiceImpl extends ServiceImpl<AiModelMapper, AiModel>
     }
 
     @Override
+    public List<AiVectorModelVO> listVectorModels() {
+        List<AiModel> models = lambdaQuery()
+                .eq(AiModel::getModelType, "EMBEDDING")
+                .eq(AiModel::getEnabled, EnableStatusEnum.ENABLED.getCode())
+                .orderByDesc(AiModel::getIsDefault)
+                .orderByAsc(AiModel::getId)
+                .list();
+
+        // 批量查询所属提供商，避免逐条查询
+        List<Long> providerIds = new ArrayList<>();
+        for (AiModel model : models) {
+            if (model.getProviderId() != null && !providerIds.contains(model.getProviderId())) {
+                providerIds.add(model.getProviderId());
+            }
+        }
+        Map<Long, AiProvider> providerMap = new HashMap<>();
+        if (!providerIds.isEmpty()) {
+            List<AiProvider> providers = aiProviderService.listByIds(providerIds);
+            for (AiProvider provider : providers) {
+                providerMap.put(provider.getId(), provider);
+            }
+        }
+
+        List<AiVectorModelVO> rows = new ArrayList<>();
+        for (AiModel model : models) {
+            AiProvider provider = providerMap.get(model.getProviderId());
+            // 提供商存在且已启用，模型才算可用
+            if (provider == null || !EnableStatusEnum.ENABLED.getCode().equals(provider.getEnabled())) {
+                continue;
+            }
+            AiVectorModelVO vo = new AiVectorModelVO();
+            vo.setId(model.getId());
+            vo.setModelName(model.getModelName());
+            vo.setProviderName(provider.getProviderName());
+            vo.setDefaultEmbeddingDimension(model.getDefaultEmbeddingDimension());
+            vo.setSupportedDimensions(model.getSupportedDimensions());
+            rows.add(vo);
+        }
+        return rows;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Long saveModel(AiModelSaveDTO dto) {
+        checkAndNormalizeParams(dto);
         if (dto.getId() == null) {
             return insertModel(dto);
         }
         updateModel(dto);
         return dto.getId();
+    }
+
+    /**
+     * 按模型类型校验并归一化参数：
+     * 向量模型必须配置维度信息，对话模型的维度信息全部置空
+     */
+    private void checkAndNormalizeParams(AiModelSaveDTO dto) {
+        boolean embedding = AiModelType.EMBEDDING.getCode().equals(dto.getModelType());
+        boolean chat = AiModelType.CHAT.getCode().equals(dto.getModelType());
+
+        if (chat) {
+            dto.setDefaultEmbeddingDimension(null);
+            dto.setDimensionConfigurable(null);
+            dto.setSupportedDimensions(null);
+            return;
+        }
+        if (embedding) {
+            if (dto.getDefaultEmbeddingDimension() == null) {
+                throw new BusinessException("默认Embedding维度不能为空");
+            }
+            checkDimensionValue(dto.getDefaultEmbeddingDimension());
+
+            String configurable = dto.getDimensionConfigurable();
+            if (!StringUtils.hasText(configurable)) {
+                configurable = "0";
+                dto.setDimensionConfigurable(configurable);
+            }
+            if (!"0".equals(configurable) && !"1".equals(configurable)) {
+                throw new BusinessException("是否可配置维度只能为0或1");
+            }
+            if ("1".equals(configurable)
+                    && (dto.getSupportedDimensions() == null || dto.getSupportedDimensions().isEmpty())) {
+                throw new BusinessException("支持的Embedding维度不能为空");
+            }
+            checkSupportedDimensions(dto.getSupportedDimensions());
+
+            dto.setTemperature(BigDecimal.ZERO);
+            dto.setMaxTokens(0);
+            dto.setContextWindow(0);
+            return;
+        }
+
+        // 其他类型（如 RERANK）：若传了维度参数，仍校验取值合法性
+        checkDimensionValue(dto.getDefaultEmbeddingDimension());
+        checkSupportedDimensions(dto.getSupportedDimensions());
+    }
+
+    /**
+     * 校验单个Embedding维度取值
+     */
+    private void checkDimensionValue(Integer dimension) {
+        if (dimension != null && !ALLOWED_EMBEDDING_DIMENSIONS.contains(dimension)) {
+            throw new BusinessException("Embedding维度仅支持768、1024、1536、3072");
+        }
+    }
+
+    /**
+     * 校验支持的Embedding维度列表取值
+     */
+    private void checkSupportedDimensions(List<Integer> dimensions) {
+        if (dimensions == null) {
+            return;
+        }
+        for (Integer dimension : dimensions) {
+            checkDimensionValue(dimension == null ? -1 : dimension);
+        }
     }
 
     /**
@@ -215,7 +334,20 @@ public class AiModelServiceImpl extends ServiceImpl<AiModelMapper, AiModel>
         }
         AiModel model = new AiModel();
         BeanUtils.copyProperties(dto, model);
-        updateById(model);
+        LambdaUpdateWrapper<AiModel> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(AiModel::getId, dto.getId());
+        if (AiModelType.EMBEDDING.getCode().equals(dto.getModelType())) {
+            // updateById 会忽略 null，切换为向量模型时需显式清空对话参数
+            updateWrapper.set(AiModel::getTemperature, null)
+                    .set(AiModel::getMaxTokens, null)
+                    .set(AiModel::getContextWindow, null);
+        } else if (AiModelType.CHAT.getCode().equals(dto.getModelType())) {
+            // 对话模型不需要维度参数，显式清空旧值
+            updateWrapper.set(AiModel::getDefaultEmbeddingDimension, null)
+                    .set(AiModel::getDimensionConfigurable, null)
+                    .set(AiModel::getSupportedDimensions, null);
+        }
+        update(model, updateWrapper);
     }
 
     /**
