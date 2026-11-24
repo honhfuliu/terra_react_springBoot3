@@ -17,7 +17,10 @@ public class MybatisPlusConfig {
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));
+
+        // 不固定数据库类型，根据当前数据库连接自动识别方言
+        interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
+
         return interceptor;
     }
 }
