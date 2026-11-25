@@ -1,5 +1,6 @@
 package com.ziheng.common.file;
 
+import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface FileService {
@@ -11,5 +12,29 @@ public interface FileService {
      * @return 文件路径
      */
     String upload(MultipartFile file, FileType fileType);
+
+    /**
+     * 根据指定目录上传
+     *
+     * @param file 文件
+     * @param directory 存储目录（相对于上传根目录）
+     * @return 文件相对路径
+     */
+    String upload(MultipartFile file, String directory);
+
+    /**
+     * 删除文件
+     *
+     * @param relativePath 文件相对路径
+     */
+    void delete(String relativePath);
+
+    /**
+     * 根据相对路径获取文件资源
+     *
+     * @param relativePath 文件相对路径
+     * @return 文件资源
+     */
+    Resource getResource(String relativePath);
 
 }
