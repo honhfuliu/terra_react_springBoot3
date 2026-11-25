@@ -54,6 +54,10 @@ spring:
       # 启动占位 Key：用于满足 Spring AI OpenAI 自动配置的非空校验
       # 实际模型调用使用数据库中配置的 Provider API Key
       api-key: dummy-key-for-startup
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
 
 
 # 监控配置
@@ -80,6 +84,12 @@ terra:
     # 关闭后登录接口不再校验验证码，前端也会隐藏验证码输入框
     enabled: false
   ai:
+    # Docling 配置
+    docling:
+      # Docling 服务地址
+      base-url: http://127.0.0.1:5001
+      # Docling 解析文件存储路径
+      storage-path: D:/terra/docling_parsed
     security:
       # 加密密钥
       encryption-key: ${AI_ENCRYPTION_KEY}

@@ -35,10 +35,30 @@
         <dynamic-datasource.version>4.5.0</dynamic-datasource.version>
         <!-- Spring AI -->
         <spring-ai.version>1.1.8</spring-ai.version>
+        <apache-tika.version>3.3.3</apache-tika.version>
+        <opendataloader-pdf-core.version>2.5.20</opendataloader-pdf-core.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- opendataloader-pdf-core -->
+            <dependency>
+                <groupId>org.opendataloader</groupId>
+                <artifactId>opendataloader-pdf-core</artifactId>
+                <version>${opendataloader-pdf-core.version}</version>
+            </dependency>
+            <!-- Apache Tika 核心 -->
+            <dependency>
+                <groupId>org.apache.tika</groupId>
+                <artifactId>tika-core</artifactId>
+                <version>${apache-tika.version}</version>
+            </dependency>
+            <!-- Apache Tika 标准解析器 -->
+            <dependency>
+                <groupId>org.apache.tika</groupId>
+                <artifactId>tika-parsers-standard-package</artifactId>
+                <version>${apache-tika.version}</version>
+            </dependency>
             <dependency>
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>
