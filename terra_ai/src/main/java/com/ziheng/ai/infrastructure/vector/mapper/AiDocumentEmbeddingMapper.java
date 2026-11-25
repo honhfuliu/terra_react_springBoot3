@@ -3,6 +3,7 @@ package com.ziheng.ai.infrastructure.vector.mapper;
 import com.ziheng.ai.infrastructure.vector.domain.AiDocumentEmbedding;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ziheng.ai.infrastructure.vector.domain.dto.AiChunkSearchResult;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -26,6 +27,18 @@ public interface AiDocumentEmbeddingMapper extends BaseMapper<AiDocumentEmbeddin
      */
     List<AiChunkSearchResult> searchSimilar(@Param("knowledgeId") Long knowledgeId, @Param("embeddingModelId") Long embeddingModelId, @Param("queryVector") float[] queryVector, @Param("topK") Integer topK);
 
+    /**
+     * 根据文档ID删除对应的所有向量
+     */
+    @Delete("""
+        DELETE FROM ai_document_embedding
+        WHERE chunk_id IN (
+            SELECT id
+            FROM ai_document_chunk
+            WHERE document_id = #{documentId}
+        )
+        """)
+    int deleteByDocumentId(@Param("documentId") Long documentId);
 }
 
 

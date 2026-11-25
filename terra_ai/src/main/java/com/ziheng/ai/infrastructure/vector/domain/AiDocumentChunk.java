@@ -15,7 +15,7 @@ import lombok.Data;
  * AI知识库文档分块表
  * @TableName ai_document_chunk
  */
-@TableName(value ="ai_document_chunk")
+@TableName(value ="ai_document_chunk", autoResultMap = true)
 @Data
 public class AiDocumentChunk {
     /**

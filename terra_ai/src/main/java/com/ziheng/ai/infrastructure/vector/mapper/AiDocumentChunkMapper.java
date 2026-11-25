@@ -2,6 +2,8 @@ package com.ziheng.ai.infrastructure.vector.mapper;
 
 import com.ziheng.ai.infrastructure.vector.domain.AiDocumentChunk;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Param;
 
 /**
 * @author Administrator
@@ -11,6 +13,14 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface AiDocumentChunkMapper extends BaseMapper<AiDocumentChunk> {
 
+    /**
+     * 根据文档ID删除所有分块
+     */
+    @Delete("""
+        DELETE FROM ai_document_chunk
+        WHERE document_id = #{documentId}
+        """)
+    int deleteByDocumentId(@Param("documentId") Long documentId);
 }
 
 

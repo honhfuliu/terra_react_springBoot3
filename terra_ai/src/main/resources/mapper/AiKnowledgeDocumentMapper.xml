@@ -15,20 +15,21 @@
             <result property="mimeType" column="mime_type" />
             <result property="pageCount" column="page_count" />
             <result property="chunkCount" column="chunk_count" />
-            <result property="status" column="status" />
-            <result property="errorMessage" column="error_message" />
             <result property="processStartTime" column="process_start_time" />
             <result property="processEndTime" column="process_end_time" />
             <result property="createBy" column="create_by" />
             <result property="createTime" column="create_time" />
             <result property="updateBy" column="update_by" />
             <result property="updateTime" column="update_time" />
+            <result property="parseStatus" column="parse_status" />
+            <result property="embeddingStatus" column="embedding_status" />
+
     </resultMap>
 
     <sql id="Base_Column_List">
         id,knowledge_id,file_name,file_ext,file_size,file_path,
-        file_md5,mime_type,page_count,chunk_count,status,
-        error_message,process_start_time,process_end_time,create_by,create_time,
-        update_by,update_time
+        file_md5,mime_type,page_count,chunk_count,process_start_time,
+        process_end_time,create_by,create_time,update_by,update_time,
+        parse_status,embedding_status
     </sql>
 </mapper>
