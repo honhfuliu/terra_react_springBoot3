@@ -1,5 +1,6 @@
 package com.ziheng.ai.infrastructure.vector.service;
 
+import com.ziheng.ai.infrastructure.vector.domain.AiDocumentChunk;
 import com.ziheng.ai.infrastructure.vector.domain.AiDocumentEmbedding;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ziheng.ai.infrastructure.vector.domain.dto.AiChunkSearchResult;
@@ -32,4 +33,8 @@ public interface AiDocumentEmbeddingService extends IService<AiDocumentEmbedding
      */
     List<AiChunkSearchResult> searchSimilar(Long knowledgeId, Long embeddingModelId, float[] queryVector, Integer topK);
 
+    /**
+     * 批量保存文档向量
+     */
+    void saveEmbeddings(Long knowledgeId, Long modelId, Integer dimension, List<AiDocumentChunk> chunks, List<float[]> vectors);
 }

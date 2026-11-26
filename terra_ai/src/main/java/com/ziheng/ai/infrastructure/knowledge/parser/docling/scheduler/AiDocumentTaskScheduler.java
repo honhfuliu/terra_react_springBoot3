@@ -1,6 +1,7 @@
 package com.ziheng.ai.infrastructure.knowledge.parser.docling.scheduler;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.ziheng.ai.capability.embedding.AiEmbeddingService;
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledge;
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledgeDocument;
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledgeDocumentTask;
@@ -14,7 +15,10 @@ import com.ziheng.ai.infrastructure.knowledge.parser.docling.exception.DoclingTa
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeDocumentService;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeDocumentTaskService;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeService;
+import com.ziheng.ai.infrastructure.vector.domain.AiDocumentChunk;
 import com.ziheng.ai.infrastructure.vector.service.AiDocumentChunkService;
+import com.ziheng.ai.infrastructure.vector.service.AiDocumentEmbeddingService;
+import com.ziheng.common.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -41,15 +45,23 @@ public class AiDocumentTaskScheduler {
 
     private final AiDocumentChunkService chunkService;
 
+    private final AiEmbeddingService aiEmbeddingService;
+
+    private final AiDocumentEmbeddingService aiDocumentEmbeddingService;
+
+
 
     public AiDocumentTaskScheduler(AiKnowledgeDocumentTaskService taskService, DoclingResultService doclingResultService,
                                    AiKnowledgeDocumentService documentService, AiKnowledgeService aiKnowledgeService,
-                                   AiDocumentChunkService chunkService) {
+                                   AiDocumentChunkService chunkService, AiEmbeddingService aiEmbeddingService,
+                                   AiDocumentEmbeddingService aiDocumentEmbeddingService) {
         this.taskService = taskService;
         this.doclingResultService = doclingResultService;
         this.documentService = documentService;
         this.aiKnowledgeService = aiKnowledgeService;
         this.chunkService = chunkService;
+        this.aiEmbeddingService = aiEmbeddingService;
+        this.aiDocumentEmbeddingService = aiDocumentEmbeddingService;
 
     }
 
@@ -111,7 +123,7 @@ public class AiDocumentTaskScheduler {
         List<AiKnowledgeDocumentTask> tasks = taskService.list(
                 Wrappers.<AiKnowledgeDocumentTask>lambdaQuery()
                         .eq(AiKnowledgeDocumentTask::getTaskType, DocumentTaskType.PARSE.getCode())
-                        .eq(AiKnowledgeDocumentTask::getTaskStatus, DocumentTaskStatus.PROCESSING.getCode())
+                        .in(AiKnowledgeDocumentTask::getTaskStatus, DocumentTaskStatus.PROCESSING.getCode(), DocumentTaskStatus.RETRYING.getCode())
                         .isNotNull(AiKnowledgeDocumentTask::getExternalTaskId)
                         .orderByAsc(AiKnowledgeDocumentTask::getCreateTime)
                         .last("LIMIT 50")
@@ -224,7 +236,7 @@ public class AiDocumentTaskScheduler {
         List<AiKnowledgeDocumentTask> tasks = taskService.list(
                 Wrappers.<AiKnowledgeDocumentTask>lambdaQuery()
                         .eq(AiKnowledgeDocumentTask::getTaskType, DocumentTaskType.CHUNK.getCode())
-                        .eq(AiKnowledgeDocumentTask::getTaskStatus, DocumentTaskStatus.PROCESSING.getCode())
+                        .in(AiKnowledgeDocumentTask::getTaskStatus, DocumentTaskStatus.PROCESSING.getCode(), DocumentTaskStatus.RETRYING.getCode())
                         .isNotNull(AiKnowledgeDocumentTask::getExternalTaskId)
                         .orderByAsc(AiKnowledgeDocumentTask::getCreateTime)
                         .last("LIMIT 50")
@@ -273,6 +285,86 @@ public class AiDocumentTaskScheduler {
                 documentService.markChunkFailed(documentId, taskId, e.getMessage());
             } catch (Exception updateException) {
                 log.error("更新文档切片失败状态异常，taskId={}, documentId={}", taskId, documentId, updateException);
+            }
+        }
+    }
+
+    /**
+     * 定时扫描待处理的 Embedding 任务
+     */
+    @Scheduled(fixedDelayString = "15000")
+    public void pollEmbeddingTasks() {
+        List<AiKnowledgeDocumentTask> tasks = taskService.list(
+                Wrappers.<AiKnowledgeDocumentTask>lambdaQuery()
+                        .eq(AiKnowledgeDocumentTask::getTaskType, DocumentTaskType.EMBEDDING.getCode())
+                        .in(AiKnowledgeDocumentTask::getTaskStatus, DocumentTaskStatus.PROCESSING.getCode(), DocumentTaskStatus.RETRYING.getCode())
+                        .orderByAsc(AiKnowledgeDocumentTask::getCreateTime)
+                        .last("LIMIT 50"));
+
+        if (tasks.isEmpty()) {
+            log.debug("没有待处理的 Embedding 任务");
+            return;
+        }
+
+        log.info("开始处理 Embedding 任务，本次任务数量：{}", tasks.size());
+
+        for (AiKnowledgeDocumentTask task : tasks) {
+            processEmbeddingTask(task);
+        }
+    }
+
+    /**
+     * 处理单个 Embedding 任务
+     * @param task 任务
+     */
+    private void processEmbeddingTask(AiKnowledgeDocumentTask task) {
+        Long taskId = task.getId();
+        Long documentId = task.getDocumentId();
+
+        try {
+            log.info("开始处理 Embedding 任务，taskId={}, documentId={}", taskId, documentId);
+
+            // 1. 查询文档
+            AiKnowledgeDocument document = documentService.getById(documentId);
+
+            if (document == null) {
+                throw new BusinessException("文档不存在，documentId=" + documentId);
+            }
+
+            // 2. 查询知识库配置
+            AiKnowledge knowledge = aiKnowledgeService.getById(document.getKnowledgeId());
+            if (knowledge == null) {
+                throw new BusinessException("知识库不存在");
+            }
+
+            // 3. 查询文档全部 Chunk
+            List<AiDocumentChunk> chunks = chunkService.listByDocumentId(documentId);
+
+            if (chunks == null || chunks.isEmpty()) {
+                throw new BusinessException("当前文档没有可向量化的 Chunk");
+            }
+
+            // 4. 提取 Chunk 文本
+            List<String> texts = chunks.stream()
+                    .map(AiDocumentChunk::getContent)
+                    .toList();
+
+            // 5. 批量生成 Embedding
+            List<float[]> vectors = aiEmbeddingService.embed(texts, knowledge.getEmbeddingModelId(), knowledge.getEmbeddingDimension());
+
+            // 6. 保存向量
+            aiDocumentEmbeddingService.saveEmbeddings(knowledge.getId(), knowledge.getEmbeddingModelId(), knowledge.getEmbeddingDimension(), chunks, vectors);
+
+            // 7. 更新文档和任务状态
+            documentService.markEmbeddingSuccess(documentId, taskId);
+            log.info("Embedding 任务处理成功，taskId={}, documentId={}, chunkCount={}", taskId, documentId, chunks.size());
+
+        } catch (Exception e) {
+            log.error("Embedding 任务处理失败，taskId={}, documentId={}", taskId, documentId, e);
+            try {
+                documentService.markEmbeddingFailed(documentId, taskId, e.getMessage());
+            } catch (Exception ex) {
+                log.error("更新文档 Embedding 失败状态异常，taskId={}, documentId={}", taskId, documentId, ex);
             }
         }
     }

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledgeDocumentTask;
+import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDocumentTaskVO;
 import com.ziheng.ai.infrastructure.knowledge.enums.DocumentTaskStatus;
 import com.ziheng.ai.infrastructure.knowledge.enums.DocumentTaskType;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeDocumentTaskService;
@@ -13,6 +14,7 @@ import com.ziheng.common.exception.BusinessException;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 /**
 * @author Administrator
@@ -80,7 +82,8 @@ public class AiKnowledgeDocumentTaskServiceImpl extends ServiceImpl<AiKnowledgeD
 
         task.setDocumentId(documentId);
         task.setTaskType(DocumentTaskType.EMBEDDING.getCode());
-        task.setTaskStatus(DocumentTaskStatus.PENDING.getCode());
+        task.setTaskStatus(DocumentTaskStatus.PROCESSING.getCode());
+        task.setStartTime(new Date());
         task.setRetryCount(0);
         task.setMaxRetryCount(3);
 
@@ -161,6 +164,23 @@ public class AiKnowledgeDocumentTaskServiceImpl extends ServiceImpl<AiKnowledgeD
         }
         baseMapper.delete(new LambdaQueryWrapper<AiKnowledgeDocumentTask>()
                 .eq(AiKnowledgeDocumentTask::getDocumentId, documentId));
+    }
+
+    /**
+     * 根据文档ID查询任务列表
+      * @param documentId 文档ID
+      * @return 任务列表
+     */
+    @Override
+    public List<AiKnowledgeDocumentTaskVO> listByDocumentId(Long documentId) {
+        LambdaQueryWrapper<AiKnowledgeDocumentTask> aiKnowledgeDocumentTaskLambdaQueryWrapper = new LambdaQueryWrapper<AiKnowledgeDocumentTask>()
+                .eq(AiKnowledgeDocumentTask::getDocumentId, documentId)
+                .orderByAsc(AiKnowledgeDocumentTask::getCreateTime);
+        List<AiKnowledgeDocumentTask> documentTasks = baseMapper.selectList(aiKnowledgeDocumentTaskLambdaQueryWrapper);
+        if (documentTasks.isEmpty()) {
+            return List.of();
+        }
+        return AiKnowledgeDocumentTaskVO.from(documentTasks);
     }
 }
 

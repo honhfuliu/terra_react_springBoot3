@@ -170,6 +170,7 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
                 }
             }
         }
+        vo.setTasks(taskService.listByDocumentId(id));
         return vo;
     }
 
@@ -287,6 +288,7 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
             throw new BusinessException("文档不存在");
         }
         document.setChunkStatus(AiDocumentProcessStatus.SUCCESS.getCode());
+        document.setEmbeddingStatus(AiDocumentProcessStatus.PROCESSING.getCode());
         document.setChunkCount(chunkCount);
         document.setProcessEndTime(new Date());
 
@@ -308,6 +310,58 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
 
         // 与文档/任务状态在同一事务内创建向量化任务，失败时一起回滚
         taskService.createEmbeddingTask(documentId);
+    }
+
+    /**
+     * 标记文档向量化成功，并同步更新任务状态
+     * @param documentId 文档ID
+     * @param taskId 任务ID
+     */
+    @Override
+    public void markEmbeddingSuccess(Long documentId, Long taskId) {
+        AiKnowledgeDocument document = getById(documentId);
+        if (document == null) {
+            throw new BusinessException("文档不存在");
+        }
+        document.setEmbeddingStatus(AiDocumentProcessStatus.SUCCESS.getCode());
+        document.setProcessEndTime(new Date());
+
+        if (baseMapper.updateById(document) != 1) {
+            throw new BusinessException("更新文档向量化状态失败");
+        }
+        // 更新任务表
+        AiKnowledgeDocumentTask task = new AiKnowledgeDocumentTask();
+        task.setId(taskId);
+        task.setTaskStatus(DocumentTaskStatus.SUCCESS.getCode());
+        task.setEndTime(new Date());
+        task.setErrorMessage(null);
+
+        if (!taskService.updateById(task)) {
+            throw new BusinessException("更新向量化任务状态失败");
+        }
+    }
+    /**
+     * 标记文档向量化失败，并同步更新任务状态
+     * @param documentId 文档ID
+     * @param taskId 任务ID
+     * @param errorMessage 错误信息
+     */
+    @Override
+    public void markEmbeddingFailed(Long documentId, Long taskId, String errorMessage) {
+        DocumentTaskStatus taskStatus = taskService.markFailed(taskId, errorMessage);
+
+        AiKnowledgeDocument document = new AiKnowledgeDocument();
+        document.setId(documentId);
+        if (taskStatus == DocumentTaskStatus.RETRYING) {
+            document.setEmbeddingStatus(AiDocumentProcessStatus.RETRYING.getCode());
+        } else {
+            document.setEmbeddingStatus(AiDocumentProcessStatus.FAILED.getCode());
+            document.setProcessEndTime(new Date());
+        }
+
+        if (baseMapper.updateById(document) != 1) {
+            throw new BusinessException("更新文档向量化状态失败");
+        }
     }
 
     /**

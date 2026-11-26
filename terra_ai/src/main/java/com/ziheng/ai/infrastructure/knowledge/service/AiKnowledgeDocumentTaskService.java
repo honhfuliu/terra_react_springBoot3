@@ -3,7 +3,10 @@ package com.ziheng.ai.infrastructure.knowledge.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledgeDocumentTask;
+import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDocumentTaskVO;
 import com.ziheng.ai.infrastructure.knowledge.enums.DocumentTaskStatus;
+
+import java.util.List;
 
 /**
 * @author Administrator
@@ -56,4 +59,9 @@ public interface AiKnowledgeDocumentTaskService extends IService<AiKnowledgeDocu
      * 删除文档对应的所有处理任务
      */
     void deleteByDocumentId(Long documentId);
+
+    /**
+     * 根据文档 ID 查询任务列表
+     */
+    List<AiKnowledgeDocumentTaskVO> listByDocumentId(Long documentId);
 }

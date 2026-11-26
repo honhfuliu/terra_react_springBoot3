@@ -3,6 +3,7 @@ package com.ziheng.ai.infrastructure.knowledge.domain.vo;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.List;
 
 /**
  * AI 知识库文档详情视图对象
@@ -93,4 +94,6 @@ public class AiKnowledgeDocumentDetailVO {
      * 切分状态描述
      */
     private String chunkStatusName;
+
+    private List<AiKnowledgeDocumentTaskVO> tasks;
 }

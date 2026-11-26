@@ -78,6 +78,19 @@ public interface AiKnowledgeDocumentService extends IService<AiKnowledgeDocument
     void markChunkFailed(Long documentId, Long taskId, String errorMessage);
 
     /**
+     * 向量化成功，更新文档和任务状态
+     * @param documentId 文档ID
+     * @param taskId 任务ID
+     */
+    void markEmbeddingSuccess(Long documentId, Long taskId);
+
+    /**
+     * 切片失败，更新文档和任务状态
+     */
+    void markEmbeddingFailed(Long documentId, Long taskId, String errorMessage);
+
+
+    /**
      * 将知识库文档原始文件写入响应，供前端以 blob 下载
      *
      * @param documentId 文档ID

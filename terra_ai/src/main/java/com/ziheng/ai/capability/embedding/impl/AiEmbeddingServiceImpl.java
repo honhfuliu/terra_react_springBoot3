@@ -3,12 +3,20 @@ package com.ziheng.ai.capability.embedding.impl;
 import com.ziheng.ai.capability.embedding.AiEmbeddingService;
 import com.ziheng.ai.infrastructure.client.context.AiEmbeddingContext;
 import com.ziheng.ai.infrastructure.client.factory.AiEmbeddingClientFactory;
+import com.ziheng.common.exception.BusinessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class AiEmbeddingServiceImpl implements AiEmbeddingService {
+
+    private static final Logger log = LoggerFactory.getLogger(AiEmbeddingServiceImpl.class);
+
     private final AiEmbeddingClientFactory aiEmbeddingClientFactory;
 
     public AiEmbeddingServiceImpl(AiEmbeddingClientFactory aiEmbeddingClientFactory) {
@@ -47,7 +55,31 @@ public class AiEmbeddingServiceImpl implements AiEmbeddingService {
         // 创建 Embedding 上下文
         AiEmbeddingContext context = aiEmbeddingClientFactory.create(modelId, dimension);
 
-        // 批量调用模型生成向量
-        return context.getEmbeddingModel().embed(texts);
+        EmbeddingModel embeddingModel = context.getEmbeddingModel();
+
+        // 当前模型单次请求最多20条
+        final int batchSize = 20;
+
+        List<float[]> result = new ArrayList<>();
+
+        // 分批调用模型
+        for (int start = 0; start < texts.size(); start += batchSize) {
+
+            int end = Math.min(start + batchSize, texts.size());
+
+            List<String> batchTexts = texts.subList(start, end);
+
+            log.info("Embedding 批次处理，当前范围：{}-{}，本批数量：{}", start, end - 1, batchTexts.size());
+
+            List<float[]> batchVectors = embeddingModel.embed(batchTexts);
+
+            if (batchVectors.size() != batchTexts.size()) {
+                throw new BusinessException("Embedding 返回的向量数量与文本数量不一致");
+            }
+
+            result.addAll(batchVectors);
+        }
+
+        return result;
     }
 }

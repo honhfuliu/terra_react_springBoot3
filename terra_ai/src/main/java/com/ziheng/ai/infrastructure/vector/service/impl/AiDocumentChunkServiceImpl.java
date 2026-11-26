@@ -126,6 +126,18 @@ public class AiDocumentChunkServiceImpl extends ServiceImpl<AiDocumentChunkMappe
         baseMapper.deleteByDocumentId(documentId);
     }
 
+    /**
+     * 根据文档ID查询所有分块
+     * @param documentId 文档ID
+     * @return 分块列表
+     */
+    @Override
+    public List<AiDocumentChunk> listByDocumentId(Long documentId) {
+        return baseMapper.selectList(new LambdaQueryWrapper<AiDocumentChunk>()
+                .eq(AiDocumentChunk::getDocumentId, documentId)
+                .orderByAsc(AiDocumentChunk::getChunkIndex));
+    }
+
 
     /**
      * 按约定格式组织 jsonb 元数据

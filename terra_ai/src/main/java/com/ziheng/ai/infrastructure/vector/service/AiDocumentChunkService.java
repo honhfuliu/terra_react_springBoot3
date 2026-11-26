@@ -40,5 +40,11 @@ public interface AiDocumentChunkService extends IService<AiDocumentChunk> {
      */
     void deleteByDocumentId(Long documentId);
 
-
+    /**
+     * 查询文档全部 Chunk
+     *
+     * @param documentId 文档ID
+     * @return 文档分块列表
+     */
+    List<AiDocumentChunk> listByDocumentId(Long documentId);
 }

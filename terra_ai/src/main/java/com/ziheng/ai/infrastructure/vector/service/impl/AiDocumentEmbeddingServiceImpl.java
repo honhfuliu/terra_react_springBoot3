@@ -1,14 +1,19 @@
 package com.ziheng.ai.infrastructure.vector.service.impl;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ziheng.ai.infrastructure.vector.domain.AiDocumentChunk;
 import com.ziheng.ai.infrastructure.vector.domain.AiDocumentEmbedding;
 import com.ziheng.ai.infrastructure.vector.domain.dto.AiChunkSearchResult;
 import com.ziheng.ai.infrastructure.vector.service.AiDocumentEmbeddingService;
 import com.ziheng.ai.infrastructure.vector.mapper.AiDocumentEmbeddingMapper;
+import com.ziheng.common.exception.BusinessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -57,6 +62,52 @@ public class AiDocumentEmbeddingServiceImpl extends ServiceImpl<AiDocumentEmbedd
     @Override
     public List<AiChunkSearchResult> searchSimilar(Long knowledgeId, Long embeddingModelId, float[] queryVector, Integer topK) {
         return baseMapper.searchSimilar(knowledgeId, embeddingModelId, queryVector, topK);
+    }
+
+    /**
+     * 保存向量
+     * @param knowledgeId 知识库ID
+     * @param modelId 模型ID
+     * @param dimension 向量维度
+     * @param chunks 分块内容
+     * @param vectors 向量值
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void saveEmbeddings(Long knowledgeId, Long modelId, Integer dimension, List<AiDocumentChunk> chunks, List<float[]> vectors) {
+        if (chunks == null || chunks.isEmpty()) {
+            return;
+        }
+
+        if (vectors == null || chunks.size() != vectors.size()) {
+            throw new BusinessException("Chunk 数量与 Embedding 向量数量不一致");
+        }
+        List<Long> chunkIds = chunks.stream()
+                .map(AiDocumentChunk::getId)
+                .toList();
+        // 删除旧向量，保证重试幂等
+        LambdaQueryWrapper<AiDocumentEmbedding> wrapper = new LambdaQueryWrapper<AiDocumentEmbedding>()
+                .in(AiDocumentEmbedding::getChunkId, chunkIds);
+        baseMapper.delete(wrapper);
+
+        List<AiDocumentEmbedding> embeddings = new ArrayList<>();
+
+        for (int i = 0; i < chunks.size(); i++) {
+            AiDocumentEmbedding embedding = new AiDocumentEmbedding();
+
+            embedding.setChunkId(chunks.get(i).getId());
+            embedding.setKnowledgeId(knowledgeId);
+            embedding.setEmbeddingModelId(modelId);
+            embedding.setEmbeddingDimension(dimension);
+            embedding.setEmbedding(vectors.get(i));
+            embedding.setStatus(1);
+
+            embeddings.add(embedding);
+        }
+
+        if (!this.saveBatch(embeddings)) {
+            throw new BusinessException("保存文档向量失败");
+        }
     }
 
 }
