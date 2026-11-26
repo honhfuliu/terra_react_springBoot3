@@ -88,8 +88,6 @@ terra:
     docling:
       # Docling 服务地址
       base-url: http://127.0.0.1:5001
-      # Docling 解析文件存储路径
-      storage-path: D:/terra/docling_parsed
     security:
       # 加密密钥
       encryption-key: ${AI_ENCRYPTION_KEY}

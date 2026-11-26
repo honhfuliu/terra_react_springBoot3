@@ -3,8 +3,6 @@ package com.ziheng.ai.infrastructure.knowledge.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledge;
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledgeDocument;
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledgeDocumentTask;
@@ -17,7 +15,6 @@ import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDocumentVO;
 import com.ziheng.ai.infrastructure.knowledge.enums.AiDocumentCleanupType;
 import com.ziheng.ai.infrastructure.knowledge.enums.AiDocumentProcessStatus;
 import com.ziheng.ai.infrastructure.knowledge.enums.DocumentTaskStatus;
-import com.ziheng.ai.infrastructure.knowledge.parser.docling.DoclingMarkdownStorage;
 import com.ziheng.ai.infrastructure.knowledge.mapper.AiKnowledgeMapper;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeDocumentCleanupTaskService;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeDocumentService;
@@ -29,6 +26,7 @@ import com.ziheng.ai.infrastructure.model.service.AiModelService;
 import com.ziheng.ai.infrastructure.vector.service.AiDocumentChunkService;
 import com.ziheng.common.core.domain.PageResult;
 import com.ziheng.common.exception.BusinessException;
+import com.ziheng.common.file.FileDirectory;
 import com.ziheng.common.file.FileService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -63,7 +61,6 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
     private final AiModelService aiModelService;
     private final FileService fileService;
     private final AiKnowledgeDocumentTaskService taskService;
-    private final DoclingMarkdownStorage markdownStorage;
     private final AiKnowledgeDocumentDeleteTransactionServiceImpl deleteTransactionService;
     private final AiDocumentChunkService aiDocumentChunkService;
     private final AiKnowledgeDocumentCleanupTaskService cleanupTaskService;
@@ -72,14 +69,13 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
 
     public AiKnowledgeDocumentServiceImpl(AiKnowledgeMapper aiKnowledgeMapper, AiModelService aiModelService,
                                           FileService fileService, AiKnowledgeDocumentTaskService taskService,
-                                          DoclingMarkdownStorage markdownStorage, AiKnowledgeDocumentDeleteTransactionServiceImpl deleteTransactionService,
+                                          AiKnowledgeDocumentDeleteTransactionServiceImpl deleteTransactionService,
                                           AiDocumentChunkService aiDocumentChunkService,
                                           AiKnowledgeDocumentCleanupTaskService cleanupTaskService) {
         this.aiKnowledgeMapper = aiKnowledgeMapper;
         this.aiModelService = aiModelService;
         this.fileService = fileService;
         this.taskService = taskService;
-        this.markdownStorage = markdownStorage;
         this.deleteTransactionService = deleteTransactionService;
         this.aiDocumentChunkService = aiDocumentChunkService;
         this.cleanupTaskService = cleanupTaskService;
@@ -95,11 +91,6 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
      * 允许的文件大小（字节）
      */
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024L;
-
-    /**
-     * 知识库文档存储目录
-     */
-    private static final String KNOWLEDGE_DOCUMENT_DIRECTORY = "file/knowledge";
 
     /**
      * 分页查询文档列表
@@ -203,7 +194,7 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
     @Transactional(rollbackFor = Exception.class)
     public void markParseSuccess(Long documentId, Long taskId, DoclingParseResult result)  {
         AiKnowledgeDocument document = getById(documentId);
-        Integer pageCount = markdownStorage.getPageCount(result.getJsonPath());
+        Integer pageCount = result.getPageCount();
         document.setPageCount(pageCount);
         document.setParseStatus(AiDocumentProcessStatus.SUCCESS.getCode());
         document.setParsedMdPath(result.getMarkdownPath());
@@ -420,7 +411,7 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
         if (!StringUtils.hasText(document.getParsedMdPath())) {
             throw new BusinessException("文档尚未解析完成，Markdown 文件不存在");
         }
-        Resource resource = markdownStorage.getResource(document.getParsedMdPath());
+        Resource resource = fileService.getResource(document.getParsedMdPath());
 
         response.setContentType("text/markdown;charset=UTF-8");
         response.setHeader("Content-Disposition",
@@ -460,7 +451,7 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
         // 重复文件校验
         validateDuplicate(dto.getKnowledgeId(), fileMd5);
         // 上传文件
-        String directory = KNOWLEDGE_DOCUMENT_DIRECTORY + "/" + dto.getKnowledgeId();
+        String directory = FileDirectory.KNOWLEDGE_DOCUMENT + "/" + dto.getKnowledgeId();
         String filePath = fileService.upload(dto.getFile(), directory);
 
 

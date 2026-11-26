@@ -9,6 +9,7 @@ import com.ziheng.ai.infrastructure.knowledge.parser.docling.enums.DocumentForma
 import com.ziheng.ai.infrastructure.knowledge.parser.docling.enums.TaskStatus;
 import com.ziheng.ai.infrastructure.knowledge.parser.docling.enums.TaskType;
 import com.ziheng.ai.infrastructure.knowledge.parser.docling.exception.DoclingTaskNotCompletedException;
+import com.ziheng.common.file.FileDirectory;
 import com.ziheng.common.file.FileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Path;
+import java.io.InputStream;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,15 +28,12 @@ public class DoclingResultService {
 
     private final DoclingClient doclingClient;
 
-    private final DoclingMarkdownStorage markdownStorage;
-
     private final ObjectMapper objectMapper;
 
     private final FileService fileService;
 
-    public DoclingResultService(DoclingClient doclingClient, DoclingMarkdownStorage markdownStorage, ObjectMapper objectMapper, FileService fileService) {
+    public DoclingResultService(DoclingClient doclingClient, ObjectMapper objectMapper, FileService fileService) {
         this.doclingClient = doclingClient;
-        this.markdownStorage = markdownStorage;
         this.objectMapper = objectMapper;
         this.fileService = fileService;
     }
@@ -49,7 +47,7 @@ public class DoclingResultService {
      * @throws IOException IO 异常
      */
     public String submitChunkTask(String filePath, Integer chunkSize,Long documentId) throws IOException {
-        Resource resource = markdownStorage.getResource(filePath);
+        Resource resource = fileService.getResource(filePath);
         JsonNode response = doclingClient.submitChunkAsync(resource, resource.getFilename(), chunkSize == null ? 1024 : chunkSize);
         String taskId = response.path("task_id").asText();
         if (taskId.isBlank()) {
@@ -139,13 +137,27 @@ public class DoclingResultService {
 
         String jsonContent = objectMapper.writerWithDefaultPrettyPrinter()
                 .writeValueAsString(jsonNode);
-        // 保存 Markdown 文件
-        String mdPath = markdownStorage.saveMarkdown(documentId, mdContent);
-        String jsonPath = markdownStorage.saveJson(documentId, jsonContent);
+        // 保存解析结果到统一文件存储目录
+        String mdPath = fileService.saveText(FileDirectory.DOCLING_PARSED, documentId + ".md", mdContent);
+        String jsonPath = fileService.saveText(FileDirectory.DOCLING_PARSED, documentId + ".json", jsonContent);
 
         log.info("Markdown 文件保存路径：{}", mdPath);
         log.info("JSON 文件保存路径：{}", jsonPath);
-        return new DoclingParseResult(mdPath, jsonPath);
+        return new DoclingParseResult(mdPath, jsonPath, readPageCount(jsonPath));
+    }
+
+    /**
+     * 从保存后的 JSON 文件读取文档页数
+     */
+    private Integer readPageCount(String jsonPath) {
+        try (InputStream inputStream = fileService.getResource(jsonPath).getInputStream()) {
+            JsonNode root = objectMapper.readTree(inputStream);
+            JsonNode pages = root.path("pages");
+            return pages.isObject() ? pages.size() : null;
+        } catch (Exception e) {
+            log.warn("获取 Docling 文档页数失败，jsonPath={}", jsonPath, e);
+            return null;
+        }
     }
 
 

@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -128,6 +129,36 @@ public class LocalFileServiceImpl implements FileService {
 
         } catch (IOException e) {
             throw new BusinessException("文件上传失败");
+        }
+    }
+
+    /**
+     * 保存文本文件内容
+     */
+    @Override
+    public String saveText(String directory, String fileName, String content) {
+        if (!StringUtils.hasText(directory) || !StringUtils.hasText(fileName)) {
+            throw new BusinessException("存储目录或文件名不能为空");
+        }
+        if (fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
+            throw new BusinessException("文件名不合法");
+        }
+
+        Path rootPath = Paths.get(uploadPath).toAbsolutePath().normalize();
+        Path targetDir = rootPath.resolve(directory).normalize();
+        if (!targetDir.startsWith(rootPath)) {
+            throw new BusinessException("文件存储目录不合法");
+        }
+
+        try {
+            Files.createDirectories(targetDir);
+            Path targetFile = targetDir.resolve(fileName).normalize();
+            Files.writeString(targetFile, content, StandardCharsets.UTF_8);
+            return rootPath.relativize(targetFile)
+                    .toString()
+                    .replace("\\", "/");
+        } catch (IOException e) {
+            throw new BusinessException("文件保存失败");
         }
     }
 

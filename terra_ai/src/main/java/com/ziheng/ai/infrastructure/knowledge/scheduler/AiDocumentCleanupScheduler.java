@@ -2,7 +2,6 @@ package com.ziheng.ai.infrastructure.knowledge.scheduler;
 
 import com.ziheng.ai.infrastructure.knowledge.domain.AiKnowledgeDocumentCleanupTask;
 import com.ziheng.ai.infrastructure.knowledge.enums.AiDocumentCleanupType;
-import com.ziheng.ai.infrastructure.knowledge.parser.docling.DoclingMarkdownStorage;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeDocumentCleanupTaskService;
 import com.ziheng.ai.infrastructure.vector.service.AiDocumentChunkService;
 import com.ziheng.common.exception.BusinessException;
@@ -23,15 +22,12 @@ public class AiDocumentCleanupScheduler {
 
     private final AiKnowledgeDocumentCleanupTaskService cleanupTaskService;
     private final FileService fileService;
-    private final DoclingMarkdownStorage doclingMarkdownStorage;
     private final AiDocumentChunkService aiDocumentChunkService;
 
     public AiDocumentCleanupScheduler(AiKnowledgeDocumentCleanupTaskService cleanupTaskService, FileService fileService,
-                                      DoclingMarkdownStorage doclingMarkdownStorage,
                                       AiDocumentChunkService aiDocumentChunkService) {
         this.cleanupTaskService = cleanupTaskService;
         this.fileService = fileService;
-        this.doclingMarkdownStorage = doclingMarkdownStorage;
         this.aiDocumentChunkService = aiDocumentChunkService;
     }
 
@@ -55,8 +51,8 @@ public class AiDocumentCleanupScheduler {
                     aiDocumentChunkService.deleteByDocumentId(task.getDocumentId());
                 } else if (AiDocumentCleanupType.FILE_DELETE.getCode().equals(taskType)) {
                     fileService.delete(task.getOriginalFilePath());
-                    doclingMarkdownStorage.delete(task.getMarkdownFilePath());
-                    doclingMarkdownStorage.delete(task.getJsonFilePath());
+                    fileService.delete(task.getMarkdownFilePath());
+                    fileService.delete(task.getJsonFilePath());
                 } else {
                     throw new BusinessException("未知的清理任务类型：" + taskType);
                 }

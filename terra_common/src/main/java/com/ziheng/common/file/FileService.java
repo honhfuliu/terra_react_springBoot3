@@ -37,4 +37,14 @@ public interface FileService {
      */
     Resource getResource(String relativePath);
 
+    /**
+     * 保存文本文件内容
+     *
+     * @param directory 存储目录（相对于上传根目录）
+     * @param fileName 文件名（不含路径）
+     * @param content 文本内容
+     * @return 文件相对路径
+     */
+    String saveText(String directory, String fileName, String content);
+
 }
