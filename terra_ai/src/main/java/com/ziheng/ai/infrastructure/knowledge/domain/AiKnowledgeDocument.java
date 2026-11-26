@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
+
+import com.ziheng.ai.infrastructure.knowledge.enums.AiDocumentProcessStatus;
 import lombok.Data;
 
 /**
@@ -120,5 +122,30 @@ public class AiKnowledgeDocument {
     private String parsedJsonPath;
 
 
+    public static AiKnowledgeDocument copy(AiKnowledgeDocument source){
+        AiKnowledgeDocument target = new AiKnowledgeDocument();
+        target.setId(null);
+        target.setKnowledgeId(source.getKnowledgeId());
+        target.setFileName(source.getFileName());
+        target.setFileExt(source.getFileExt());
+        target.setFileSize(source.getFileSize());
+        target.setFilePath(source.getFilePath());
+        target.setFileMd5(source.getFileMd5());
+        target.setMimeType(source.getMimeType());
+        target.setPageCount(0);
+        target.setChunkCount(0);
+        target.setProcessStartTime(new Date());
+        target.setProcessEndTime(null);
+        target.setCreateBy(null);
+        target.setCreateTime(new Date());
+        target.setUpdateBy(null);
+        target.setUpdateTime(new Date());
+        target.setParseStatus(AiDocumentProcessStatus.PROCESSING.getCode());
+        target.setEmbeddingStatus(AiDocumentProcessStatus.PENDING.getCode());
+        target.setChunkStatus(AiDocumentProcessStatus.PENDING.getCode());
+        target.setParsedMdPath(null);
+        target.setParsedJsonPath(null);
+        return target;
+    }
 
 }

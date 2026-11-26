@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
@@ -159,6 +160,44 @@ public class LocalFileServiceImpl implements FileService {
                     .replace("\\", "/");
         } catch (IOException e) {
             throw new BusinessException("文件保存失败");
+        }
+    }
+
+    /**
+     * 复制文件
+     */
+    @Override
+    public String copy(String sourceRelativePath, String targetDirectory, String targetFileName) {
+        if (!StringUtils.hasText(sourceRelativePath) || !StringUtils.hasText(targetDirectory)
+                || !StringUtils.hasText(targetFileName)) {
+            throw new BusinessException("源文件路径或目标路径不能为空");
+        }
+        if (targetFileName.contains("/") || targetFileName.contains("\\") || targetFileName.contains("..")) {
+            throw new BusinessException("目标文件名不合法");
+        }
+
+        Path rootPath = Paths.get(uploadPath).toAbsolutePath().normalize();
+        Path sourcePath = rootPath.resolve(sourceRelativePath).normalize();
+        Path targetDir = rootPath.resolve(targetDirectory).normalize();
+        if (!sourcePath.startsWith(rootPath) || !targetDir.startsWith(rootPath)) {
+            throw new BusinessException("文件路径不合法");
+        }
+        if (!Files.exists(sourcePath) || !Files.isRegularFile(sourcePath)) {
+            throw new BusinessException("源文件不存在");
+        }
+
+        try {
+            Files.createDirectories(targetDir);
+            Path targetPath = targetDir.resolve(targetFileName).normalize();
+            if (sourcePath.equals(targetPath)) {
+                throw new BusinessException("源文件和目标文件不能相同");
+            }
+            Files.copy(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+            return rootPath.relativize(targetPath)
+                    .toString()
+                    .replace("\\", "/");
+        } catch (IOException e) {
+            throw new BusinessException("文件复制失败");
         }
     }
 

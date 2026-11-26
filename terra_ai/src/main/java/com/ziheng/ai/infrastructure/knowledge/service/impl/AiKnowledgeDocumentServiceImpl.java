@@ -12,7 +12,6 @@ import com.ziheng.ai.infrastructure.knowledge.domain.dto.DoclingParseResult;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDocumentDetailVO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDocumentVO;
 
-import com.ziheng.ai.infrastructure.knowledge.enums.AiDocumentCleanupType;
 import com.ziheng.ai.infrastructure.knowledge.enums.AiDocumentProcessStatus;
 import com.ziheng.ai.infrastructure.knowledge.enums.DocumentTaskStatus;
 import com.ziheng.ai.infrastructure.knowledge.mapper.AiKnowledgeMapper;
@@ -425,6 +424,65 @@ public class AiKnowledgeDocumentServiceImpl extends ServiceImpl<AiKnowledgeDocum
         }
     }
 
+    /**
+     * 重新解析文档
+     * @param documentId 文档ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reparse(Long documentId) {
+        // 1. SELECT FOR UPDATE 查询并锁定文档
+        LambdaQueryWrapper<AiKnowledgeDocument> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AiKnowledgeDocument::getId, documentId);
+        wrapper.last("FOR UPDATE");
+        AiKnowledgeDocument document = baseMapper.selectOne(wrapper);
+        if (document == null) {
+            throw new BusinessException("文档不存在");
+        }
+        // 2. 校验 PARSE、CHUNK、EMBEDDING 状态
+        validateProcessStatus("文档解析", document.getParseStatus());
+        validateProcessStatus("文档切分", document.getChunkStatus());
+        validateProcessStatus("文档向量化", document.getEmbeddingStatus());
+
+        // 3.效验task任务是否全部完结
+        taskService.validateTaskFinished(documentId);
+        // 3.1 删除任务
+        taskService.deleteByDocumentId(documentId);
+
+        // 4. 创建新文档记录
+        AiKnowledgeDocument newDocument = AiKnowledgeDocument.copy(document);
+        baseMapper.insert(newDocument);
+        if (newDocument.getId() == null) {
+            throw new BusinessException("文档重新执行失败");
+        }
+
+        // 7. 更新知识库 documentCount(无需处理)、chunkCount（减少指定数量）
+        aiKnowledgeMapper.decrementChunkCount(document.getKnowledgeId(), document.getChunkCount() == null ? 0 : document.getChunkCount());
+
+        // 8. 创建 FILE_DELETE 任务
+        document.setFilePath(null);
+        cleanupTaskService.createFileDeleteTask(document);
+        // 9. 创建 CHUNK_EMBEDDING_DELETE 任务
+        cleanupTaskService.createChunkEmbeddingDeleteTask(document.getKnowledgeId(), document.getId());
+        // 10. 创建新解析任务
+        taskService.createParseTask(newDocument.getId());
+        // 11. 删除原文档记录
+        baseMapper.deleteById(documentId);
+
+        log.info("文档重新执行成功，documentId={}", documentId);
+    }
+
+    /**
+     * 校验处理阶段是否已经结束
+     */
+    private void validateProcessStatus(String stageName, String status) {
+        if (!AiDocumentProcessStatus.SUCCESS.name().equals(status)
+                && !AiDocumentProcessStatus.PENDING.name().equals(status)
+                && !AiDocumentProcessStatus.FAILED.name().equals(status)) {
+
+            throw new BusinessException(stageName + "尚未完成，暂时不能删除文档");
+        }
+    }
 
     /**
      * 上传知识库文档

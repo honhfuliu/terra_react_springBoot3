@@ -105,4 +105,10 @@ public interface AiKnowledgeDocumentService extends IService<AiKnowledgeDocument
      * @param response   HTTP 响应
      */
     void downloadMarkdown(Long documentId, HttpServletResponse response);
+
+    /**
+     * 重新解析文档
+     * @param documentId 文档ID
+     */
+    void reparse(Long documentId);
 }

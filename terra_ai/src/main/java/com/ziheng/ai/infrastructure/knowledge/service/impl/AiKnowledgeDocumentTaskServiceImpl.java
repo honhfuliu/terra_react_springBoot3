@@ -182,6 +182,23 @@ public class AiKnowledgeDocumentTaskServiceImpl extends ServiceImpl<AiKnowledgeD
         }
         return AiKnowledgeDocumentTaskVO.from(documentTasks);
     }
+
+    /**
+     * 验证文档处理任务是否完成
+     * @param documentId 文档ID
+     */
+    @Override
+    public void validateTaskFinished(Long documentId) {
+        LambdaQueryWrapper<AiKnowledgeDocumentTask> aiKnowledgeDocumentTaskLambdaQueryWrapper = new LambdaQueryWrapper<AiKnowledgeDocumentTask>()
+                .eq(AiKnowledgeDocumentTask::getDocumentId, documentId)
+                .in(AiKnowledgeDocumentTask::getTaskStatus, DocumentTaskStatus.PROCESSING.getCode(), DocumentTaskStatus.RETRYING.getCode());
+        List<AiKnowledgeDocumentTask> documentTasks = baseMapper.selectList(aiKnowledgeDocumentTaskLambdaQueryWrapper);
+        if (documentTasks.isEmpty()) {
+            return;
+        }
+        throw new BusinessException("文档处理任务未完成");
+
+    }
 }
 
 

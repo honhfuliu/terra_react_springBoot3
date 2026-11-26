@@ -15,12 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -93,6 +88,18 @@ public class AiKnowledgeDocumentController {
     @Operation(summary = "获取文档解析后的 Markdown 文件")
     public void downloadMarkdown(@RequestParam("documentId") Long documentId, HttpServletResponse response) {
         aiKnowledgeDocumentService.downloadMarkdown(documentId, response);
+    }
+
+    /**
+     * 重新解析文档
+     * @param documentId 文档ID
+     * @return 成功返回200
+     */
+    @Operation(summary = "重新解析文档")
+    @PostMapping("/reparse/{documentId}")
+    public R<Void> reparse(@PathVariable("documentId") Long documentId) {
+        aiKnowledgeDocumentService.reparse(documentId);
+        return R.ok();
     }
 
 }

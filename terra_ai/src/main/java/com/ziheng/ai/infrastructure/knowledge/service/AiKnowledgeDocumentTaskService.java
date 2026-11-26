@@ -64,4 +64,10 @@ public interface AiKnowledgeDocumentTaskService extends IService<AiKnowledgeDocu
      * 根据文档 ID 查询任务列表
      */
     List<AiKnowledgeDocumentTaskVO> listByDocumentId(Long documentId);
+
+    /**
+     * 验证文档处理任务是否完成
+     * @param documentId 文档ID
+     */
+    void validateTaskFinished(Long documentId);
 }

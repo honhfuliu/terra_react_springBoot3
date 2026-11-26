@@ -47,4 +47,14 @@ public interface FileService {
      */
     String saveText(String directory, String fileName, String content);
 
+    /**
+     * 复制文件
+     * String result = copy("2024/01/a.jpg", "2024/02", "b.jpg");
+     * @param sourceRelativePath 源文件相对路径
+     * @param targetDirectory 目标目录（相对于上传根目录）
+     * @param targetFileName 目标文件名（不含路径）
+     * @return 目标文件相对路径
+     */
+    String copy(String sourceRelativePath, String targetDirectory, String targetFileName);
+
 }
