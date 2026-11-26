@@ -77,6 +77,7 @@ public class AiKnowledgeDocumentDeleteTransactionServiceImpl {
     private void validateProcessStatus(String stageName, String status) {
 
         if (!AiDocumentProcessStatus.SUCCESS.name().equals(status)
+                && !AiDocumentProcessStatus.PENDING.name().equals(status)
                 && !AiDocumentProcessStatus.FAILED.name().equals(status)) {
 
             throw new BusinessException(stageName + "尚未完成，暂时不能删除文档");
