@@ -23,9 +23,11 @@ public interface AiDocumentEmbeddingMapper extends BaseMapper<AiDocumentEmbeddin
      * @param embeddingModelId 嵌入模型ID
      * @param queryVector     查询向量
      * @param topK            返回的最相似向量数量
+     * @param similarityThreshold 相似度阈值（0~1）
      * @return AiChunkSearchResult
      */
-    List<AiChunkSearchResult> searchSimilar(@Param("knowledgeId") Long knowledgeId, @Param("embeddingModelId") Long embeddingModelId, @Param("queryVector") float[] queryVector, @Param("topK") Integer topK);
+    List<AiChunkSearchResult> searchSimilar(@Param("knowledgeId") Long knowledgeId, @Param("embeddingModelId") Long embeddingModelId,
+                                            @Param("queryVector") float[] queryVector, @Param("topK") Integer topK, @Param("similarityThreshold") Double similarityThreshold);
 
     /**
      * 根据文档ID删除对应的所有向量

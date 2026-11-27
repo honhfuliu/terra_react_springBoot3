@@ -38,4 +38,9 @@ public class AiChunkSearchResult {
      * 余弦距离，越小越相似
      */
     private Double distance;
+
+    /**
+     * 余弦相似度
+     */
+    private Double similarity;
 }

@@ -27,6 +27,7 @@
         <result property="content" column="content"/>
         <result property="metadata" column="metadata" typeHandler="com.ziheng.ai.infrastructure.vector.typehandler.JsonbTypeHandler"/>
         <result property="distance" column="distance"/>
+        <result property="similarity" column="similarity"/>
     </resultMap>
     <select id="searchSimilar" resultMap="AiChunkSearchResultMap">
         SELECT
@@ -35,7 +36,8 @@
             c.chunk_index,
             c.content,
             c.metadata,
-            e.embedding <![CDATA[ <=> ]]> #{queryVector,typeHandler=com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler} AS distance
+            e.embedding <![CDATA[ <=> ]]> #{queryVector,typeHandler=com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler} AS distance,
+            1 - (e.embedding <![CDATA[ <=> ]]> #{queryVector, typeHandler=com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler})AS similarity
         FROM
             ai_document_embedding e
             INNER JOIN
@@ -50,6 +52,7 @@
             e.status = 1
           AND
             e.embedding IS NOT NULL
+          AND 1 - (e.embedding <![CDATA[ <=> ]]>  #{queryVector, typeHandler=com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler}) >= #{similarityThreshold}
         ORDER BY
             e.embedding <![CDATA[ <=> ]]> #{queryVector,typeHandler=com.ziheng.ai.infrastructure.vector.typehandler.PgVectorTypeHandler}
             LIMIT #{topK}

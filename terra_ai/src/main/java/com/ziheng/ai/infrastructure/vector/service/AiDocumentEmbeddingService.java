@@ -29,9 +29,10 @@ public interface AiDocumentEmbeddingService extends IService<AiDocumentEmbedding
      * @param embeddingModelId  embedding模型ID
      * @param queryVector     查询向量
      * @param topK            返回最相似的TopK条记录
+     * @param similarityThreshold 相似度阈值
      * @return AiChunkSearchResult
      */
-    List<AiChunkSearchResult> searchSimilar(Long knowledgeId, Long embeddingModelId, float[] queryVector, Integer topK);
+    List<AiChunkSearchResult> searchSimilar(Long knowledgeId, Long embeddingModelId, float[] queryVector, Integer topK, Double similarityThreshold);
 
     /**
      * 批量保存文档向量
