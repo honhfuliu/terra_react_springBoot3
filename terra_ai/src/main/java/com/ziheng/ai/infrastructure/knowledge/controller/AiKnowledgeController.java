@@ -4,6 +4,7 @@ import com.ziheng.ai.infrastructure.knowledge.domain.dto.AiKnowledgeQuery;
 import com.ziheng.ai.infrastructure.knowledge.domain.dto.AiKnowledgeSaveDTO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDetailVO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeListVO;
+import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeOptionVO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeStatsVO;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeService;
 import com.ziheng.common.core.domain.PageResult;
@@ -15,6 +16,7 @@ import com.ziheng.system.sysoperationlog.constant.OperateType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,6 +41,15 @@ public class AiKnowledgeController {
     @Operation(summary = "统计知识库/文档/Chunk总数")
     public R<AiKnowledgeStatsVO> stats() {
         return R.ok(aiKnowledgeService.stats());
+    }
+
+    /**
+     * 查询所有启用知识库的选项（供前端选择框使用）
+     */
+    @GetMapping("/options")
+    @Operation(summary = "查询启用知识库选项")
+    public R<List<AiKnowledgeOptionVO>> options() {
+        return R.ok(aiKnowledgeService.listKnowledgeOptions());
     }
 
     /**

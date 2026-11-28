@@ -8,6 +8,7 @@ import com.ziheng.ai.infrastructure.knowledge.domain.dto.AiKnowledgeQuery;
 import com.ziheng.ai.infrastructure.knowledge.domain.dto.AiKnowledgeSaveDTO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDetailVO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeListVO;
+import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeOptionVO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeStatsVO;
 import com.ziheng.ai.infrastructure.knowledge.service.AiKnowledgeService;
 import com.ziheng.ai.infrastructure.knowledge.mapper.AiKnowledgeMapper;
@@ -70,6 +71,56 @@ public class AiKnowledgeServiceImpl extends ServiceImpl<AiKnowledgeMapper, AiKno
         stats.setDocumentCount(baseMapper.sumDocumentCount());
         stats.setChunkCount(baseMapper.sumChunkCount());
         return stats;
+    }
+
+    /**
+     * 查询所有启用知识库的选项（供前端选择框使用）
+     */
+    @Override
+    public List<AiKnowledgeOptionVO> listKnowledgeOptions() {
+        List<AiKnowledge> knowledgeList = lambdaQuery()
+                .select(AiKnowledge::getId, AiKnowledge::getName,
+                        AiKnowledge::getDocumentCount, AiKnowledge::getChunkCount,
+                        AiKnowledge::getEmbeddingModelId, AiKnowledge::getStatus)
+                .eq(AiKnowledge::getStatus, DEFAULT_STATUS)
+                .orderByAsc(AiKnowledge::getId)
+                .list();
+        Map<Long, String> modelCodeMap = queryEmbeddingModelCodes(knowledgeList);
+
+        List<AiKnowledgeOptionVO> result = new ArrayList<>(knowledgeList.size());
+        for (AiKnowledge knowledge : knowledgeList) {
+            AiKnowledgeOptionVO vo = new AiKnowledgeOptionVO();
+            vo.setId(knowledge.getId());
+            vo.setName(knowledge.getName());
+            vo.setDocumentCount(knowledge.getDocumentCount());
+            vo.setChunkCount(knowledge.getChunkCount());
+            vo.setEmbeddingModelCode(knowledge.getEmbeddingModelId() == null
+                    ? null : modelCodeMap.get(knowledge.getEmbeddingModelId()));
+            vo.setStatus(knowledge.getStatus());
+            result.add(vo);
+        }
+        return result;
+    }
+
+    /**
+     * 批量查询 Embedding 模型编码（key：模型ID）
+     */
+    private Map<Long, String> queryEmbeddingModelCodes(List<AiKnowledge> knowledgeList) {
+        List<Long> modelIds = new ArrayList<>();
+        for (AiKnowledge knowledge : knowledgeList) {
+            Long modelId = knowledge.getEmbeddingModelId();
+            if (modelId != null && !modelIds.contains(modelId)) {
+                modelIds.add(modelId);
+            }
+        }
+        if (modelIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        Map<Long, String> result = new HashMap<>(modelIds.size());
+        for (AiModel model : aiModelService.listByIds(modelIds)) {
+            result.put(model.getId(), model.getModelCode());
+        }
+        return result;
     }
 
     /**

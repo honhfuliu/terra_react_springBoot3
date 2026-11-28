@@ -5,9 +5,12 @@ import com.ziheng.ai.infrastructure.knowledge.domain.dto.AiKnowledgeQuery;
 import com.ziheng.ai.infrastructure.knowledge.domain.dto.AiKnowledgeSaveDTO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeDetailVO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeListVO;
+import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeOptionVO;
 import com.ziheng.ai.infrastructure.knowledge.domain.vo.AiKnowledgeStatsVO;
 import com.ziheng.common.core.domain.PageResult;
 import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
 
 /**
 * @author Administrator
@@ -53,5 +56,12 @@ public interface AiKnowledgeService extends IService<AiKnowledge> {
      * @return 详情
      */
     AiKnowledgeDetailVO detail(Long id);
+
+    /**
+     * 查询所有启用知识库的选项（供前端选择框使用）
+     *
+     * @return 知识库选项列表（ID、名称、文档数、Chunk数、向量模型编码、状态）
+     */
+    List<AiKnowledgeOptionVO> listKnowledgeOptions();
 
 }

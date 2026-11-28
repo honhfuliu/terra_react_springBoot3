@@ -231,4 +231,42 @@ public class AiChatServiceImpl implements AiChatService {
             return Flux.just(new AiChatStreamEvent("error", "AI 回复生成失败，请稍后重试"));
         });
     }
+
+    /**
+     * 一次性聊天
+     * @param modelId 模型 ID
+     * @param messages 消息列表
+     * @return
+     */
+    @Override
+    public AiChatResponse chatOnce(Long modelId, List<Message> messages) {
+        // 1. 检查 AI 对话功能是否开启
+        if (!aiProperties.getChat().isEnabled()) {
+            throw new BusinessException("AI 对话功能已关闭");
+        }
+
+        // 2. 参数校验
+        if (modelId == null) {
+            throw new BusinessException("聊天模型 ID 不能为空");
+        }
+
+        if (messages == null || messages.isEmpty()) {
+            throw new BusinessException("聊天消息不能为空");
+        }
+
+        try {
+            // 3. 根据模型 ID 创建 AI 聊天上下文
+            AiChatContext aiChatContext = aiChatClientFactory.create(modelId);
+
+            // 4. 调用 AI 模型
+            return aiChatClient.chat(
+                    aiChatContext.getChatClient(),
+                    messages
+            );
+
+        } catch (Exception e) {
+            log.error("内部 AI 模型调用失败，modelId={}", modelId, e);
+            throw e;
+        }
+    }
 }

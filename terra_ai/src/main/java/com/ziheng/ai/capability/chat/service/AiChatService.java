@@ -3,7 +3,9 @@ package com.ziheng.ai.capability.chat.service;
 import com.ziheng.ai.capability.chat.domain.dto.AiChatSendDTO;
 import com.ziheng.ai.capability.chat.domain.vo.AiChatSendVO;
 import com.ziheng.ai.capability.chat.event.AiChatStreamEvent;
+import com.ziheng.ai.infrastructure.client.chat.AiChatResponse;
 import com.ziheng.ai.infrastructure.model.domain.vo.AiModelOptionVO;
+import org.springframework.ai.chat.messages.Message;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -31,4 +33,14 @@ public interface AiChatService {
      * @return 流式聊天事件
      */
     Flux<AiChatStreamEvent> streamMessage(AiChatSendDTO dto);
+
+
+    /**
+     * 内部业务调用模型（非流式）
+     *
+     * @param modelId 模型 ID
+     * @param messages 消息列表
+     * @return AI 响应
+     */
+    AiChatResponse chatOnce(Long modelId, List<Message> messages);
 }
